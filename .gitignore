@@ -1,11 +1,11 @@
 # Add any directories, files, or patterns you don't want to be tracked by version control#
 *.o
-.idea
+/.idea
 *cmake
 *.cbp
 *.depend
 *.layout
-bin
-obj
+/bin
+/obj
 *.exe
-make*
+*make*
