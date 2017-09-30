@@ -12,7 +12,6 @@
 #include <string>
 #include <iostream>
 
-
 // Include C system libaries
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -22,6 +21,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+// Include custom classes
+#include "email.h"
 
 
 // Defines
@@ -45,6 +47,13 @@ int main (int argc, char** argv) {
 	char buffer[BUF];
 	int size, c;
 	struct sockaddr_in address, cliaddress;
+
+	// Test for email class
+	email mail;
+	mail.set_sender("Daniel");
+	mail.set_receiver("Thomas");
+	mail.set_subject("First E-Mail Implementation");
+	mail.set_message("My message\n.\n");
 
 
 	// Parse Program Parameters
@@ -76,7 +85,7 @@ int main (int argc, char** argv) {
 	address.sin_addr.s_addr = INADDR_ANY;
 	address.sin_port = htons(port);
 
-    // Bind the socket
+	// Bind the socket
 	if (bind (create_socket, (struct sockaddr *) &address, sizeof (address)) != 0) {
 		perror("bind error");
 		return EXIT_FAILURE;
@@ -84,7 +93,7 @@ int main (int argc, char** argv) {
 	listen(create_socket, 5);
 	addrlen = sizeof (struct sockaddr_in);
 
-    cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
+	cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
 
 	// Start server
 	while (true) {

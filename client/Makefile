@@ -1,5 +1,7 @@
-all: mailclient.cpp
-	g++ -Wall -o mailclient mailclient.cpp
+all: mailclient
+
+mailclient: *.cpp
+	g++ -ggdb -Wall -o mailclient *.cpp
 
 clean:
-	rm -f mailclient
+	rm -f mailclient *.o
