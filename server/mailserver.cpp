@@ -26,16 +26,20 @@
 
 // Include custom classes
 #include "email.h"
+#include "filesystem.h"
 #include "netutils.h"
 
 
 //Defines
 #define BUF 1024
+#define ARCHIVE "ARCHIVE_D"
+
 
 
 // Define standard used namespaces
 using namespace std;
 using namespace netutils;
+using namespace fs;
 
 
 // Globally used variables
@@ -93,6 +97,7 @@ void connected(int socket) {
  */
 void int_handler(int sig) {
 	close(server_socket);
+	cout << endl << "Server is shutting down!" << endl;
 	exit(EXIT_SUCCESS);
 }
 
@@ -104,6 +109,32 @@ void int_handler(int sig) {
 void register_signal_handler() {
 	signal(SIGINT, int_handler);
 }
+
+
+
+/**
+ * Initializes the mailpool and all used directories.
+ *
+ * @param directory Mailpool directory.
+ */
+void initialize_mailpool(string directory) {
+	if (directory.back() != '/') {
+		directory.back() = '/';
+	}
+
+	// Create directories
+	if (!fs::exists(directory)) {
+		if (!fs::make_dir(directory)) {
+			fprintf(stderr, "Error: Can not create mail pool directory!");
+			exit(2);
+		}
+		if (!fs::make_dir(directory + ARCHIVE)) {
+			fprintf(stderr, "Error: Can not create archive directory!");
+			exit(2);
+		}
+	}
+}
+
 
 
 
@@ -151,6 +182,10 @@ int main (int argc, char** argv) {
 				break;
 		}
 	}
+
+
+	// Initializes and sets up the mail pool
+	initialize_mailpool(directory);
 
 
 	// Create the socket
