@@ -1,6 +1,8 @@
 /**
  * AUTHOR: KLEEBINDER Daniel
  * CREATED ON: 30.09.2017
+ *
+ * (c) All rights reserved
  */
 
 

@@ -24,6 +24,7 @@
 
 // Include custom classes
 #include "email.h"
+#include "netutils.h"
 
 
 // Defines
@@ -42,10 +43,10 @@ using namespace std;
  * @return Program exit code.
  */
 int main (int argc, char** argv) {
-	int create_socket, new_socket;
+	int create_socket, connection_socket;
 	socklen_t addrlen;
 	char buffer[BUF];
-	int size, c;
+	int c;
 	struct sockaddr_in address, cliaddress;
 
 	// Test for email class
@@ -86,39 +87,59 @@ int main (int argc, char** argv) {
 	address.sin_port = htons(port);
 
 	// Bind the socket
-	if (bind (create_socket, (struct sockaddr *) &address, sizeof (address)) != 0) {
+	if (bind(create_socket, (struct sockaddr *) &address, sizeof (address)) != 0) {
 		perror("bind error");
 		return EXIT_FAILURE;
 	}
 	listen(create_socket, 5);
-	addrlen = sizeof (struct sockaddr_in);
+	addrlen = sizeof(struct sockaddr_in);
 
 	cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
 
 	// Start server
 	while (true) {
-		 cout << "Waiting for connections..." << endl;
-		 new_socket = accept(create_socket, (struct sockaddr *) &cliaddress, &addrlen);
-		 if (new_socket > 0) {
+		cout << "Waiting for connections..." << endl;
+		connection_socket = accept(create_socket, (struct sockaddr *) &cliaddress, &addrlen);
+		if (connection_socket > 0) {
 			printf("Client connected from %s:%d...\n", inet_ntoa(cliaddress.sin_addr), ntohs(cliaddress.sin_port));
 			strcpy(buffer,"Welcome to myserver, Please enter your command:\n");
-			send(new_socket, buffer, strlen(buffer),0);
-		 }
-		 do {
-			size = recv (new_socket, buffer, BUF - 1, 0);
-			if(size > 0) {
-				 buffer[size] = '\0';
-				 printf ("Message received: %s\n", buffer);
-			} else if (size == 0) {
-				 printf("Client closed remote socket\n");
-				 break;
-			} else {
-				 perror("recv error");
-				 return EXIT_FAILURE;
+			send(connection_socket, buffer, strlen(buffer),0);
+		}
+
+		// Read from connected client
+		string line;
+		do {
+			// Read line by line using the netutils utility namespace
+			line = netutils::readline(connection_socket);
+
+			// Check if line is null or empty
+			if (line.empty()) {
+				continue;
 			}
-		 } while (strncmp(buffer, "quit", 4) != 0);
-		 close(new_socket);
+
+			// Start correct mail protocol
+			if (line == "SEND") {
+				cout << "STARTING SMTP SEND PROTOCOL" << endl;
+			}
+
+			if (line == "LIST") {
+				cout << "STARTING SMTP LIST PROTOCOL" << endl;
+			}
+
+			if (line == "READ") {
+				cout << "STARTING SMTP READ PROTOCOL" << endl;
+			}
+
+			if (line == "DEL") {
+				cout << "STARTING SMTP DEL PROTOCOL" << endl;
+			}
+
+			// Print received message
+			cout << "Message Received: " << line << endl;
+		} while (line != "quit");
+		close(connection_socket);
 	}
 	close(create_socket);
 	return EXIT_SUCCESS;
 }
+
