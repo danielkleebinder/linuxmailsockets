@@ -11,12 +11,14 @@
 // Include C++/11 Headers
 #include <string>
 #include <iostream>
+#include <thread>
 
 // Include C system libaries
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -27,12 +29,82 @@
 #include "netutils.h"
 
 
-// Defines
+//Defines
 #define BUF 1024
 
 
 // Define standard used namespaces
 using namespace std;
+using namespace netutils;
+
+
+// Globally used variables
+static volatile int server_socket;
+
+
+/**
+ * Handles the connection from a client.
+ *
+ * @param socket Connected client socket.
+ */
+void connected(int socket) {
+	string line;
+	do {
+		// Read line by line using the netutils utility namespace
+		line = readline(socket);
+
+		// Check if line is null or empty
+		if (line.empty()) {
+			continue;
+		}
+
+		// Start correct mail protocol
+		if (line == "SEND") {
+			cout << "STARTING SMTP SEND PROTOCOL" << endl;
+		}
+
+		if (line == "LIST") {
+			cout << "STARTING SMTP LIST PROTOCOL" << endl;
+		}
+
+		if (line == "READ") {
+			cout << "STARTING SMTP READ PROTOCOL" << endl;
+		}
+
+		if (line == "DEL") {
+			cout << "STARTING SMTP DEL PROTOCOL" << endl;
+		}
+
+		// Print received message
+		cout << "Message Received: " << line << endl;
+	} while (line != "quit");
+
+	// Closing the socket
+	cout << "Closing socket ID-" << socket << endl;
+	close(socket);
+}
+
+
+
+/**
+ * Handles the termination (CTRL-C) signal.
+ *
+ * @param sig Signal ID.
+ */
+void int_handler(int sig) {
+	close(server_socket);
+	exit(EXIT_SUCCESS);
+}
+
+
+
+/**
+ * Registers all used system signal handlers.
+ */
+void register_signal_handler() {
+	signal(SIGINT, int_handler);
+}
+
 
 
 /**
@@ -43,7 +115,6 @@ using namespace std;
  * @return Program exit code.
  */
 int main (int argc, char** argv) {
-	int create_socket, connection_socket;
 	socklen_t addrlen;
 	char buffer[BUF];
 	int c;
@@ -57,6 +128,10 @@ int main (int argc, char** argv) {
 	mail.set_message("My message\n.\n");
 
 
+	// Register signal handler
+	register_signal_handler();
+
+
 	// Parse Program Parameters
 	string program_name = argv[0];
 	string directory = "./mailpool/";
@@ -65,7 +140,7 @@ int main (int argc, char** argv) {
 	while ((c = getopt(argc, argv, "p:d:")) != EOF) {
 		switch (c) {
 			case '?':
-				fprintf(stderr, "%s error: Unknown parameter", program_name.c_str());
+				fprintf(stderr, "%s error: Unknown parameter\n", program_name.c_str());
 				exit(1);
 				break;
 			case 'p':
@@ -79,7 +154,7 @@ int main (int argc, char** argv) {
 
 
 	// Create the socket
-	create_socket = socket(AF_INET, SOCK_STREAM, 0);
+	server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
 	memset(&address, 0, sizeof(address));
 	address.sin_family = AF_INET;
@@ -87,59 +162,33 @@ int main (int argc, char** argv) {
 	address.sin_port = htons(port);
 
 	// Bind the socket
-	if (bind(create_socket, (struct sockaddr *) &address, sizeof (address)) != 0) {
-		perror("bind error");
+	if (bind(server_socket, (struct sockaddr *) &address, sizeof (address)) != 0) {
+		fprintf(stderr, "%s error: Bind Error, could not bind server socket\n", program_name.c_str());
 		return EXIT_FAILURE;
 	}
-	listen(create_socket, 5);
+	listen(server_socket, 5);
 	addrlen = sizeof(struct sockaddr_in);
 
 	cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
 
+
 	// Start server
 	while (true) {
 		cout << "Waiting for connections..." << endl;
-		connection_socket = accept(create_socket, (struct sockaddr *) &cliaddress, &addrlen);
+		int connection_socket = accept(server_socket, (struct sockaddr *) &cliaddress, &addrlen);
 		if (connection_socket > 0) {
 			printf("Client connected from %s:%d...\n", inet_ntoa(cliaddress.sin_addr), ntohs(cliaddress.sin_port));
 			strcpy(buffer,"Welcome to myserver, Please enter your command:\n");
 			send(connection_socket, buffer, strlen(buffer),0);
 		}
 
-		// Read from connected client
-		string line;
-		do {
-			// Read line by line using the netutils utility namespace
-			line = netutils::readline(connection_socket);
-
-			// Check if line is null or empty
-			if (line.empty()) {
-				continue;
-			}
-
-			// Start correct mail protocol
-			if (line == "SEND") {
-				cout << "STARTING SMTP SEND PROTOCOL" << endl;
-			}
-
-			if (line == "LIST") {
-				cout << "STARTING SMTP LIST PROTOCOL" << endl;
-			}
-
-			if (line == "READ") {
-				cout << "STARTING SMTP READ PROTOCOL" << endl;
-			}
-
-			if (line == "DEL") {
-				cout << "STARTING SMTP DEL PROTOCOL" << endl;
-			}
-
-			// Print received message
-			cout << "Message Received: " << line << endl;
-		} while (line != "quit");
-		close(connection_socket);
+		// Start connection thread
+		thread con_thread(connected, connection_socket);
+		con_thread.detach();
 	}
-	close(create_socket);
+
+	// Close server socket
+	close(server_socket);
 	return EXIT_SUCCESS;
 }
 
