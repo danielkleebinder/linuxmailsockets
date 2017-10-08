@@ -26,6 +26,7 @@
 
 // Include custom classes
 #include "email.h"
+#include "smtphandler.h"
 #include "filesystem.h"
 #include "netutils.h"
 
@@ -46,12 +47,14 @@ using namespace fs;
 static volatile int server_socket;
 
 
+
 /**
  * Handles the connection from a client.
  *
  * @param socket Connected client socket.
  */
 void connected(int socket) {
+	smtphandler handler(socket);
 	string line;
 	do {
 		// Read line by line using the netutils utility namespace
@@ -64,19 +67,19 @@ void connected(int socket) {
 
 		// Start correct mail protocol
 		if (line == "SEND") {
-			cout << "STARTING SMTP SEND PROTOCOL" << endl;
+			handler.send();
 		}
 
 		if (line == "LIST") {
-			cout << "STARTING SMTP LIST PROTOCOL" << endl;
+			handler.list();
 		}
 
 		if (line == "READ") {
-			cout << "STARTING SMTP READ PROTOCOL" << endl;
+			handler.read();
 		}
 
 		if (line == "DEL") {
-			cout << "STARTING SMTP DEL PROTOCOL" << endl;
+			handler.del();
 		}
 
 		// Print received message
@@ -84,6 +87,7 @@ void connected(int socket) {
 	} while (line != "quit");
 
 	// Closing the socket
+	handler.quit();
 	cout << "Closing socket ID-" << socket << endl;
 	close(socket);
 }

@@ -1,6 +1,6 @@
 /**
  * AUTHOR: KLEEBINDER Daniel
- * CREATED ON: 30.09.2017
+ * CREATED ON: 07.10.2017
  *
  * (c) All rights reserved
  */
@@ -41,5 +41,18 @@ namespace netutils {
 
 		// Return the string result
 		return result;
+	}
+
+	/*
+	* Writes the given text to the given file descriptor.
+	*
+	* @param file_descriptor C file descriptor.
+	* @param text Text to be written.
+	* @return True if successful, otherwise false.
+	*/
+	bool writetext(int file_descriptor, std::string text) {
+		int size = text.length();
+		int n = write(file_descriptor, text.c_str(), size);
+		return n >= size;
 	}
 }
