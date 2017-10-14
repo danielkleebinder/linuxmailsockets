@@ -8,16 +8,27 @@
 
 #include "mailpoolservice.h"
 #include "email.h"
+#include "../filesystem.h"
 
 #include <string>
 #include <iostream>
-
+#include <stdexcept>
 
 
 mailpoolservice::mailpoolservice(std::string basedir)
-	: basedir(basedir) {}
+	: basedir(basedir) {
+	create_dir_hierarchy(basedir);
+}
 
 mailpoolservice::~mailpoolservice() {}
+
+
+void mailpoolservice::create_dir_hierarchy(std::string dir) {
+	if (!fs::make_dir_rec(dir)) {
+		throw std::runtime_error("Could not create mail pool directory: " + dir);
+	}
+}
+
 
 bool mailpoolservice::save_mail(email& mail) {
 	return true;
@@ -32,3 +43,10 @@ std::string mailpoolservice::get_basedir() {
 }
 
 
+void mailpoolservice::set_archive_name(std::string archive_name) {
+	this->archive_name = archive_name;
+}
+
+std::string mailpoolservice::get_archive_name() {
+	return archive_name;
+}

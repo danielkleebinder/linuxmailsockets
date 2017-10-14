@@ -38,18 +38,16 @@
 
 //Defines
 #define BUF 1024
-#define ARCHIVE "ARCHIVE_D"
 
 
 
 // Define standard used namespaces
 using namespace std;
-using namespace netutils;
-using namespace fs;
 
 
 // Globally used variables
 static net::sserversocket* ss;
+
 
 
 /**
@@ -65,39 +63,12 @@ void int_handler(int sig) {
 }
 
 
-
 /**
  * Registers all used system signal handlers.
  */
 void register_signal_handler() {
 	signal(SIGINT, int_handler);
 }
-
-
-
-/**
- * Initializes the mailpool and all used directories.
- *
- * @param directory Mailpool directory.
- */
-void initialize_mailpool(string directory) {
-	if (directory.back() != '/') {
-		directory.back() = '/';
-	}
-
-	// Create directories
-	if (!fs::exists(directory)) {
-		if (!fs::make_dir(directory)) {
-			fprintf(stderr, "Error: Can not create mail pool directory!");
-			exit(2);
-		}
-		if (!fs::make_dir(directory + ARCHIVE)) {
-			fprintf(stderr, "Error: Can not create archive directory!");
-			exit(2);
-		}
-	}
-}
-
 
 
 

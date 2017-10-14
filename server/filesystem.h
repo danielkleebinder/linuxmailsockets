@@ -14,6 +14,7 @@
 namespace fs {
 	bool exists(std::string fd);
 	bool make_dir(std::string dir);
+	bool make_dir_rec(std::string dir);
 	bool make_file(std::string file);
 	bool file_append_text(std::string file, std::string text);
 }

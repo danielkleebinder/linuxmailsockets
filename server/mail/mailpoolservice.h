@@ -24,6 +24,11 @@ public:
 
 private:
 	std::string basedir;
+	std::string archive_name;
+
+	void set_archive_name(std::string archive_name);
+	std::string get_archive_name();
+	void create_dir_hierarchy(std::string dir);
 };
 
 
