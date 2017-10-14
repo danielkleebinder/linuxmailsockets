@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
 			net::ssocket connection = ss->accept_connection();
 
 			// Start smtp mail service and run in own thread
-			smtpservice smtps = smtpservice(connection);
+			smtpservice smtps = smtpservice(connection, mps);
 			smtps.start_forked_service();
 		}
 	} catch(exception& ex) {

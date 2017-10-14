@@ -8,15 +8,18 @@
 
 #include "../net/socket.h"
 #include "smtpservice.h"
+#include "mailpoolservice.h"
 
 #include <string>
 #include <iostream>
 #include <thread>
+#include <stdexcept>
+#include <vector>
+#include <sstream>
 
 
-
-smtpservice::smtpservice(net::ssocket& socket)
-	: socket(socket) {}
+smtpservice::smtpservice(net::ssocket& socket, mailpoolservice& mps)
+	: socket(socket), mps(mps) {}
 
 smtpservice::~smtpservice() {}
 
@@ -77,25 +80,118 @@ void smtpservice::run_protocol(net::ssocket& con_sock) {
 
 
 void smtpservice::send() {
-	socket.get_stream().swrite("OK\n");
+	stream in = socket.get_stream();
+
+	// Create E-Mail
+	email mail;
+	try {
+		mail.set_sender(in.sreadline());
+		mail.set_receiver(in.sreadline());
+		mail.set_subject(in.sreadline());
+
+		// Read message until the char sequence "\n.\n" occurs
+		std::string message, line;
+		while (true) {
+			line = in.sreadline();
+			message += line;
+			message += '\n';
+			if (message.substr(message.length() - 3) == "\n.\n") {
+				break;
+			}
+		}
+		mail.set_message(message);
+	} catch (std::exception& ex) {
+		// An error occurred
+		std::cout << ex.what() << std::endl;
+		in.swrite("ERR\n");
+		return;
+	}
+
+	// Everything is fine
+	in.swrite("OK\n");
 }
 
 void smtpservice::list() {
-	std::cout << "LIST PROTOCOL" << std::endl;
-	socket.get_stream().swrite("List Protocol started\n");
+	stream in = socket.get_stream();
+
+	try {
+		std::string username = in.sreadline();
+		std::vector<email> mails = mps.load_user_mails(username);
+
+		// List total amount of messages
+		std::stringstream ss;
+		ss << "Number of available messages: ";
+		ss << mails.size();
+		ss << std::endl;
+		in.swrite(ss.str());
+
+		// List all messages with numbers
+		int index = 0;
+		for (email current : mails) {
+			ss.str(std::string());
+			ss << " " << (++index) << ".) ";
+			ss << current.get_subject();
+			ss << std::endl;
+			in.swrite(ss.str());
+		}
+	} catch(std::exception& ex) {
+		std::cout << ex.what() << std::endl;
+		in.swrite("ERR\n");
+		return;
+	}
 }
 
 void smtpservice::read() {
-	std::cout << "READ PROTOCOL" << std::endl;
-	socket.get_stream().swrite("Read Protocol started\n");
+	stream in = socket.get_stream();
+
+	try {
+		std::string username = in.sreadline();
+		int msg_num = atoi(in.sreadline().c_str());
+
+		// Load mail
+		email mail = mps.load_mail(username, msg_num);
+
+		// Nothing has thrown an exception, everything is fine so far
+		std::stringstream ss;
+		ss << "OK" << std::endl;
+		in.swrite(ss.str());
+
+		// Send E-Mail message
+		ss.str(std::string());
+		ss << mail.get_message();
+		ss << std::endl;
+		in.swrite(ss.str());
+	} catch(std::exception& ex) {
+		std::cout << ex.what() << std::endl;
+		in.swrite("ERR\n");
+		return;
+	}
 }
 
 void smtpservice::del() {
-	std::cout << "DEL PROTOCOL" << std::endl;
-	socket.get_stream().swrite("Del Protocl started\n");
+	stream in = socket.get_stream();
+
+	try {
+		std::string username = in.sreadline();
+		int msg_num = atoi(in.sreadline().c_str());
+
+		// Delete mail
+		mps.delete_mail(username, msg_num);
+
+		// Nothing has thrown an exception, everything is fine
+		std::stringstream ss;
+		ss << "OK" << std::endl;
+		in.swrite(ss.str());
+	} catch(std::exception& ex) {
+		std::cout << ex.what() << std::endl;
+		in.swrite("ERR\n");
+		return;
+	}
 }
 
 void smtpservice::quit() {
-	std::cout << "QUIT PROTOCOL" << std::endl;
-	socket.get_stream().swrite("Quit Protocol started\n");
+	std::cout << "User quits the mail server!" << std::endl;
+	std::stringstream ss;
+	ss << "Disconnected from the server!" << std::endl;
+	socket.get_stream().swrite(ss.str());
 }

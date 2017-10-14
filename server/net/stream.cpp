@@ -10,6 +10,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <iostream>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string>
@@ -52,6 +53,7 @@ std::string stream::sreadline() {
 
 		// Check for end of line
 		if (ch == '\n' || ch == '\r' || ch == '\0') {
+			sread();		// Skip the UNIX line feed character <10>
 			break;
 		}
 

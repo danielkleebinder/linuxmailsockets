@@ -2,6 +2,7 @@
 #define SMTPSERVICE_H
 
 
+#include "mailpoolservice.h"
 #include "../net/socket.h"
 
 
@@ -13,7 +14,7 @@
  */
 class smtpservice {
 public:
-	smtpservice(net::ssocket& socket);
+	smtpservice(net::ssocket& socket, mailpoolservice& mps);
 	~smtpservice();
 
 	// Starts the SMTP protocol in an own thread
@@ -35,6 +36,7 @@ protected:
 
 private:
 	net::ssocket& socket;
+	mailpoolservice& mps;
 };
 
 

@@ -11,6 +11,7 @@
 #include "../filesystem.h"
 
 #include <string>
+#include <vector>
 #include <iostream>
 #include <stdexcept>
 
@@ -32,8 +33,15 @@ bool mailpoolservice::save_mail(email& mail) {
 	return true;
 }
 
-email mailpoolservice::load_mail(std::string name) {
+email mailpoolservice::load_mail(std::string username, int mail_id) {
 	return email();
+}
+
+void mailpoolservice::delete_mail(std::string username, int mail_id) {
+}
+
+std::vector<email> mailpoolservice::load_user_mails(std::string username) {
+	return std::vector<email>();
 }
 
 std::string mailpoolservice::get_basedir() {

@@ -3,6 +3,7 @@
 
 
 #include <string>
+#include <vector>
 #include "email.h"
 
 
@@ -18,7 +19,10 @@ public:
 	~mailpoolservice();
 
 	bool save_mail(email& mail);
-	email load_mail(std::string name);
+	email load_mail(std::string username, int mail_id);
+	void delete_mail(std::string username, int mail_id);
+	std::vector<email> load_user_mails(std::string username);
+
 
 	std::string get_basedir();
 
