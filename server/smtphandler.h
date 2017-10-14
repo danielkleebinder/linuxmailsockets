@@ -2,6 +2,9 @@
 #define SMTPHANDLER_H
 
 
+#include "net/socket.h"
+
+
 /**
  * AUTHOR: KLEEBINDER Daniel
  * CREATED ON: 08.10.2017
@@ -10,7 +13,7 @@
  */
 class smtphandler {
 public:
-	smtphandler(int socket);
+	smtphandler(net::socket& socket);
 	~smtphandler();
 
 	void send();
@@ -20,7 +23,7 @@ public:
 	void quit();
 
 private:
-	int socket;
+	net::socket& socket;
 };
 
 

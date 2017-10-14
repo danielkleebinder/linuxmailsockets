@@ -29,6 +29,9 @@
 #include "smtphandler.h"
 #include "filesystem.h"
 #include "netutils.h"
+#include "net/stream.h"
+#include "net/socket.h"
+#include "net/serversocket.h"
 
 
 //Defines
@@ -43,22 +46,21 @@ using namespace netutils;
 using namespace fs;
 
 
-// Globally used variables
-static volatile int server_socket;
-
-
 
 /**
  * Handles the connection from a client.
  *
  * @param socket Connected client socket.
  */
-void connected(int socket) {
-	smtphandler handler(socket);
+void connected(net::socket& connection) {
+	smtphandler handler(connection);
+
+	stream socket_stream = connection.get_stream();
+
 	string line;
 	do {
 		// Read line by line using the netutils utility namespace
-		line = readline(socket);
+		line = socket_stream.sreadline();
 
 		// Check if line is null or empty
 		if (line.empty()) {
@@ -88,8 +90,8 @@ void connected(int socket) {
 
 	// Closing the socket
 	handler.quit();
-	cout << "Closing socket ID-" << socket << endl;
-	close(socket);
+	cout << "Closing socket ID-" << connection.get_handler_id() << endl;
+	connection.close_socket();
 }
 
 
@@ -100,7 +102,6 @@ void connected(int socket) {
  * @param sig Signal ID.
  */
 void int_handler(int sig) {
-	close(server_socket);
 	cout << endl << "Server is shutting down!" << endl;
 	exit(EXIT_SUCCESS);
 }
@@ -150,11 +151,6 @@ void initialize_mailpool(string directory) {
  * @return Program exit code.
  */
 int main(int argc, char** argv) {
-	socklen_t addrlen;
-	char buffer[BUF];
-	int c;
-	struct sockaddr_in address, cliaddress;
-
 	// Test for email class
 	email mail;
 	mail.set_sender("Daniel");
@@ -170,7 +166,7 @@ int main(int argc, char** argv) {
 	// Parse Program Parameters
 	string program_name = argv[0];
 	string directory = "./mailpool/";
-	int port = 6543;
+	int port = 6543, c;
 
 	while ((c = getopt(argc, argv, "p:d:")) != EOF) {
 		switch (c) {
@@ -190,44 +186,20 @@ int main(int argc, char** argv) {
 
 	// Initializes and sets up the mail pool
 	initialize_mailpool(directory);
-
-
-	// Create the socket
-	server_socket = socket(AF_INET, SOCK_STREAM, 0);
-
-	memset(&address, 0, sizeof(address));
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = INADDR_ANY;
-	address.sin_port = htons(port);
-
-	// Bind the socket
-	if (bind(server_socket, (struct sockaddr *) &address, sizeof(address)) != 0) {
-		fprintf(stderr, "%s error: Bind Error, could not bind server socket\n", program_name.c_str());
-		return EXIT_FAILURE;
-	}
-	listen(server_socket, 5);
-	addrlen = sizeof(struct sockaddr_in);
-
 	cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
 
-
 	// Start server
+	net::serversocket ss = net::serversocket(port);
 	while (true) {
 		cout << "Waiting for connections..." << endl;
-		int connection_socket = accept(server_socket, (struct sockaddr *) &cliaddress, &addrlen);
-		if (connection_socket > 0) {
-			printf("Client connected from %s:%d...\n", inet_ntoa(cliaddress.sin_addr), ntohs(cliaddress.sin_port));
-			strcpy(buffer,"Welcome to myserver, Please enter your command:\n");
-			send(connection_socket, buffer, strlen(buffer),0);
-		}
+		net::socket connection = ss.accept();
 
 		// Start connection thread
-		thread con_thread(connected, connection_socket);
+		thread con_thread(connected, std::ref(connection));
 		con_thread.detach();
 	}
 
 	// Close server socket
-	close(server_socket);
 	return EXIT_SUCCESS;
 }
 

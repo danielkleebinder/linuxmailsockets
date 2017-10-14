@@ -8,6 +8,10 @@
 
 #include "stream.h"
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <string>
 #include <stdexcept>
 #include <unistd.h>
@@ -19,29 +23,21 @@ stream::stream(int handler)
 stream::~stream() {}
 
 
-std::string stream::get_host() {
-	return _host;
-}
-
-int stream::get_port() {
-	return _port;
-}
-
-void stream::close() {
+void stream::close_stream() {
 	close(_handler);
 }
 
 
-char stream::read() {
+char stream::sread() {
 	char ch;
-	int n = read(stream_handler, &ch, 1);
+	int n = read(_handler, &ch, 1);
 	if (n == -1) {
-		throw exception("Error while reading a character from the stream");
+		throw "Error while reading a character from the stream";
 	}
 	return ch;
 }
 
-std::string stream::readline() {
+std::string stream::sreadline() {
 	std::string result;
 	char ch;
 	int n = 0;
@@ -66,18 +62,18 @@ std::string stream::readline() {
 	return result;	
 }
 
-void stream::write(char ch) {
-	int n = write(_handler, ch, 1);
+void stream::swrite(char ch) {
+	int n = write(_handler, &ch, 1);
 	if (n < 1) {
-		throw exception("Error while writing a character to the stream");
+		throw "Error while writing a character to the stream";
 	}
 }
 
-void stream::write(std::string str) {
+void stream::swrite(std::string str) {
 	int size = str.length();
 	int n = write(_handler, str.c_str(), size);
 	if (n < size) {
-		throw exception("Error while writing a text to the stream");
+		throw "Error while writing a text to the stream";
 	}
 }
 
