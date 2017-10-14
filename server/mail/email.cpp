@@ -23,8 +23,8 @@ email::email(std::string from, std::string to, std::string subject, std::string 
 email::~email() {}
 
 void email::set_sender(std::string from) {
-	if (from.length() > 8) {
-		throw std::invalid_argument("Sender length is not allowed to exceed 8 characters!");
+	if (from.length() <= 0 || from.length() > 8) {
+		throw std::invalid_argument("Sender length is not allowed to exceed 8 characters and can't be empty!");
 	}
 	this->from = from;
 }
@@ -34,8 +34,8 @@ std::string email::get_sender() {
 }
 
 void email::set_receiver(std::string to) {
-	if (to.length() > 8) {
-		throw std::invalid_argument("Receiver length is not allowed to exceed 8 characters!");
+	if (to.length() <= 0 || to.length() > 8) {
+		throw std::invalid_argument("Receiver length is not allowed to exceed 8 characters and can't be empty!");
 	}
 	this->to = to;
 }
@@ -45,8 +45,8 @@ std::string email::get_receiver() {
 }
 
 void email::set_subject(std::string subject) {
-	if (subject.length() > 80) {
-		throw std::invalid_argument("Subject length is not allowed to exceed 80 characters!");
+	if (subject.length() <= 0 || subject.length() > 80) {
+		throw std::invalid_argument("Subject length is not allowed to exceed 80 characters and can't be empty!");
 	}
 	this->subject = subject;
 }
