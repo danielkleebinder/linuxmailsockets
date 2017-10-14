@@ -67,9 +67,6 @@ void smtpservice::run_protocol(net::ssocket& con_sock) {
 		if (line == "DEL") {
 			del();
 		}
-
-		// Print received message
-		std::cout << "Message Received: " << line << std::endl;
 	} while (line != "quit");
 
 	// Closing the socket
@@ -90,16 +87,20 @@ void smtpservice::send() {
 		mail.set_subject(in.sreadline());
 
 		// Read message until the char sequence "\n.\n" occurs
-		std::string message, line;
+		std::stringstream ss, message;
+		ss << std::endl << "." << std::endl;
+		std::string msg_ending = ss.str();
+		std::string line, final_msg;
 		while (true) {
 			line = in.sreadline();
-			message += line;
-			message += '\n';
-			if (message.substr(message.length() - 3) == "\n.\n") {
+			message << line;
+			message << std::endl;
+			final_msg = message.str();
+			if (final_msg.substr(final_msg.length() - msg_ending.length()) == msg_ending) {
 				break;
 			}
 		}
-		mail.set_message(message);
+		mail.set_message(final_msg);
 		mps.save_mail(mail);
 	} catch (std::exception& ex) {
 		// An error occurred

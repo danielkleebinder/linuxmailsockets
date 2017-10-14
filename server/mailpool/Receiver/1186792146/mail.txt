@@ -1,0 +1,6 @@
+Daniel
+Receiver
+Subject
+This is
+a simple test text
+for this email

@@ -59,16 +59,10 @@ bool mailpoolservice::save_mail(email& mail) {
 	std::string attadir = concat_dir(uuiddir, ATTACHMENT_DIR);
 
 	// Check if user directory exists
-	if (!fs::exists(userdir)) {
-		if (!fs::make_dir(userdir)) {
-			return false;
-		}
-		if (!fs::make_dir(uuiddir)) {
-			return false;
-		}
-		if (!fs::make_dir(attadir)) {
-			return false;
-		}
+	if (!fs::exists(attadir)) {
+		fs::make_dir(userdir);
+		fs::make_dir(uuiddir);
+		fs::make_dir(attadir);
 	}
 
 	// Write E-Mail
@@ -99,13 +93,9 @@ bool mailpoolservice::delete_mail(std::string username, unsigned int mail_id) {
 	}
 
 	// Create directory hierarchy
-	if (!fs::exists(archdir)) {
-		if (!fs::make_dir(archdir)) {
-			return false;
-		}
-		if (!fs::make_dir(udeldir)) {
-			return false;
-		}
+	if (!fs::exists(udeldir)) {
+		fs::make_dir(archdir);
+		fs::make_dir(udeldir);
 	}
 
 	// Check if email exists
@@ -178,7 +168,7 @@ email mailpoolservice::parse_mail_dir(std::string mail_dir) {
 		} else if (line_count == 2) {			// Third line: Subject
 			result.set_subject(line);
 		} else {								// Rest: Mail message
-			ss << line;
+			ss << line << std::endl;
 		}
 		line_count++;
 	}

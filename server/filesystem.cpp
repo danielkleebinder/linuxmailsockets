@@ -6,6 +6,8 @@
  */
 
 
+#include "raiilock.h"
+
 #include <unistd.h>
 #include <sys/stat.h>
 #include <dirent.h>
@@ -16,9 +18,12 @@
 #include <cstring>
 #include <vector>
 #include <stdexcept>
+#include <mutex>
 
 
 namespace fs {
+	static std::mutex _mutex;
+
 	bool exists(std::string fd) {
 		struct stat info;
 		return stat(fd.c_str(), &info) == 0;
@@ -40,16 +45,20 @@ namespace fs {
 			tmp[len - 1] = 0;
 		}
 
-		for (p = tmp + 1; *p; p++) {
-			if (*p == '/') {
-				*p = 0;
-				if (!make_dir(std::string(tmp))) {
-					return false;
+		// Create directories and lock this process
+		{
+			raiilock sl(_mutex);
+			for (p = tmp + 1; *p; p++) {
+				if (*p == '/') {
+					*p = 0;
+					if (!make_dir(std::string(tmp))) {
+						return false;
+					}
+					*p = '/';
 				}
-				*p = '/';
 			}
+			return make_dir(std::string(tmp));
 		}
-		return make_dir(std::string(tmp));
 	}
 
 	bool make_file(std::string file) {
@@ -58,13 +67,16 @@ namespace fs {
 	}
 
 	bool file_append_text(std::string file, std::string text, bool linefeed) {
-		std::ofstream out;
-		out.open(file, std::ofstream::out | std::ofstream::app);
-		out << text;
-		if (linefeed) {
-			out << std::endl;
+		{
+			raiilock sl(_mutex);
+			std::ofstream out;
+			out.open(file, std::ofstream::out | std::ofstream::app);
+			out << text;
+			if (linefeed) {
+				out << std::endl;
+			}
+			out.close();
 		}
-		out.close();
 		return true;
 	}
 
@@ -93,6 +105,7 @@ namespace fs {
 	}
 
 	bool move_dir(std::string old_dir, std::string new_dir) {
+		raiilock sl(_mutex);
 		return rename(old_dir.c_str(), new_dir.c_str()) == 0;
 	}
 }
