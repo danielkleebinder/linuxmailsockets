@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <cstring>
 #include <stdexcept>
 #include <unistd.h>
 #include <sys/types.h>
@@ -20,13 +21,11 @@
 
 
 
-net::serversocket::serversocket(int port)
-	: _port(port) {
-
+net::sserversocket::sserversocket(int port) : _port(port) {
 	// Create server socket handler
 	socket_handler = socket(AF_INET, SOCK_STREAM, 0);
 	if (socket_handler == -1) {
-		throw "Could not create server socket";
+		throw std::runtime_error("Could not create server socket");
 	}
 
 	// Create address structure
@@ -34,37 +33,37 @@ net::serversocket::serversocket(int port)
 	memset(&address, 0, sizeof(address));
 	address.sin_family = AF_INET;
 	address.sin_addr.s_addr = INADDR_ANY;
-	address.sin_port = htons(port);
+	address.sin_port = htons(_port);
 
 	// Bind and listen to the max amount of connections of 5
 	if (bind(socket_handler, (struct sockaddr*) &address, sizeof(address)) != 0) {
-		throw "Could not bind the address to the server socket";
+		throw std::runtime_error("Could not bind the address to the server socket, maybe try another port number!");
 	}
 	listen(socket_handler, 5);
 }
 
 
-net::serversocket::~serversocket() {
+net::sserversocket::~sserversocket() {
 	if (socket_handler == -1) {
 		return;
 	}
-	close();
+	close_socket();
 }
 
 
-int net::serversocket::get_port() {
+int net::sserversocket::get_port() {
 	return _port;
 }
 
-void net::serversocket::close() {
+void net::sserversocket::close_socket() {
 	close(socket_handler);
 	socket_handler = -1;
 }
 
-net::socket net::serversocket::accept() {
+net::ssocket net::sserversocket::accept_connection() {
 	socklen_t addrlen = sizeof(struct sockaddr_in);
 	struct sockaddr_in client_address;
 	int connection_socket = accept(socket_handler, (struct sockaddr*) &client_address, &addrlen);
-	return socket(connection_socket);
+	return net::ssocket(connection_socket);
 }
 

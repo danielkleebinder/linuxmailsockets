@@ -11,16 +11,16 @@
  * (c) All rights reserved
  */
 namespace net {
-	class serversocket {
+	class sserversocket {
 	public:
-		serversocket(int port);
-		virtual ~serversocket();
+		sserversocket(int port);
+		virtual ~sserversocket();
 
 		int get_port();
 
-		void close();
+		void close_socket();
 
-		socket accept();
+		net::ssocket accept_connection();
 
 	protected:
 		int _port;

@@ -11,11 +11,11 @@
  * (c) All rights reserved
  */
 namespace net {
-	class socket {
+	class ssocket {
 	public:
-		socket(int handler);
-		socket(std::string host, int port);
-		virtual ~socket();
+		ssocket(int handler);
+		ssocket(std::string host, int port);
+		virtual ~ssocket();
 
 		std::string get_host();
 		int get_port();

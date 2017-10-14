@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <cstring>
 #include <stdexcept>
 #include <unistd.h>
 #include <sys/types.h>
@@ -20,18 +21,18 @@
 
 
 
-net::socket::socket(int handler)
+net::ssocket::ssocket(int handler)
 	: socket_handler(handler) {
 	_stream = new stream(handler);
 }
 
-net::socket::socket(std::string host, int port)
+net::ssocket::ssocket(std::string host, int port)
 	: _host(host), _port(port) {
 
 	// Create socket
 	socket_handler = socket(AF_INET, SOCK_STREAM, 0);
 	if (socket_handler == -1) {
-		throw "Could not create socket";
+		throw std::runtime_error("Could not create socket");
 	}
 
 	// Create socket connection
@@ -43,7 +44,7 @@ net::socket::socket(std::string host, int port)
 
 	// Try to connect to the specified host
 	if (connect(socket_handler, (struct sockaddr*) &address, sizeof(address)) != 0) {
-		throw "Connection error, host not available";
+		throw std::runtime_error("Connection error, host not available");
 	}
 
 	// Create stream
@@ -51,33 +52,29 @@ net::socket::socket(std::string host, int port)
 }
 
 
-net::socket::~socket() {
+net::ssocket::~ssocket() {
 	delete _stream;
-	if (socket_handler == -1) {
-		return;
-	}
-	close_socket();
 }
 
 
-std::string net::socket::get_host() {
+std::string net::ssocket::get_host() {
 	return _host;
 }
 
-int net::socket::get_port() {
+int net::ssocket::get_port() {
 	return _port;
 }
 
-int net::socket::get_handler_id() {
+int net::ssocket::get_handler_id() {
 	return socket_handler;
 }
 
-void net::socket::close_socket() {
+void net::ssocket::close_socket() {
 	close(socket_handler);
 	socket_handler = -1;
 }
 
-stream& net::socket::get_stream() {
-	return _stream;
+stream& net::ssocket::get_stream() {
+	return *_stream;
 }
 
