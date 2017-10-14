@@ -3,6 +3,7 @@
 
 #include <unistd.h>
 #include <string>
+#include <vector>
 
 
 /**
@@ -16,7 +17,10 @@ namespace fs {
 	bool make_dir(std::string dir);
 	bool make_dir_rec(std::string dir);
 	bool make_file(std::string file);
-	bool file_append_text(std::string file, std::string text);
+	bool file_append_text(std::string file, std::string text, bool linefeed);
+
+	std::vector<std::string> list_files(std::string dir);
+	bool move_dir(std::string old_dir, std::string new_dir);
 }
 
 #endif // FILESYSTEM_H

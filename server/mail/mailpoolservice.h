@@ -19,10 +19,9 @@ public:
 	~mailpoolservice();
 
 	bool save_mail(email& mail);
-	email load_mail(std::string username, int mail_id);
-	void delete_mail(std::string username, int mail_id);
+	email load_mail(std::string username, unsigned int mail_id);
+	bool delete_mail(std::string username, unsigned int mail_id);
 	std::vector<email> load_user_mails(std::string username);
-
 
 	std::string get_basedir();
 
@@ -33,6 +32,10 @@ private:
 	void set_archive_name(std::string archive_name);
 	std::string get_archive_name();
 	void create_dir_hierarchy(std::string dir);
+
+	email parse_mail_dir(std::string mail_dir);
+	std::string concat_dir(std::string first, std::string last); 
+	std::string next_uuid();
 };
 
 

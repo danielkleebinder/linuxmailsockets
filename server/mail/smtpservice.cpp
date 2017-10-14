@@ -100,6 +100,7 @@ void smtpservice::send() {
 			}
 		}
 		mail.set_message(message);
+		mps.save_mail(mail);
 	} catch (std::exception& ex) {
 		// An error occurred
 		std::cout << ex.what() << std::endl;
@@ -176,16 +177,16 @@ void smtpservice::del() {
 		int msg_num = atoi(in.sreadline().c_str());
 
 		// Delete mail
-		mps.delete_mail(username, msg_num);
-
-		// Nothing has thrown an exception, everything is fine
-		std::stringstream ss;
-		ss << "OK" << std::endl;
-		in.swrite(ss.str());
+		if (mps.delete_mail(username, msg_num)) {
+			std::stringstream ss;
+			ss << "OK" << std::endl;
+			in.swrite(ss.str());
+		} else {
+			in.swrite("ERR\n");
+		}
 	} catch(std::exception& ex) {
 		std::cout << ex.what() << std::endl;
 		in.swrite("ERR\n");
-		return;
 	}
 }
 

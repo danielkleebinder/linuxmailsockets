@@ -14,6 +14,8 @@
 #include <fstream>
 #include <string>
 #include <cstring>
+#include <vector>
+#include <stdexcept>
 
 
 namespace fs {
@@ -55,11 +57,42 @@ namespace fs {
 		return true;
 	}
 
-	bool file_append_text(std::string file, std::string text) {
+	bool file_append_text(std::string file, std::string text, bool linefeed) {
 		std::ofstream out;
 		out.open(file, std::ofstream::out | std::ofstream::app);
 		out << text;
+		if (linefeed) {
+			out << std::endl;
+		}
 		out.close();
 		return true;
+	}
+
+	std::vector<std::string> list_files(std::string dir) {
+		DIR* c_dir;
+		struct dirent* entry;
+
+		// Open directory
+		if ((c_dir = opendir(dir.c_str())) == NULL) {
+			throw std::runtime_error("Could not open directory: " + dir);
+		}
+
+		// Read all files from directory
+		std::vector<std::string> result;
+		while((entry = readdir(c_dir)) != NULL) {
+			std::string d_name(entry->d_name);
+			if (d_name == "." || d_name == "..") {
+				continue;
+			}
+			result.push_back(d_name);
+		}
+
+		// Close directory
+		closedir(c_dir);
+		return result;
+	}
+
+	bool move_dir(std::string old_dir, std::string new_dir) {
+		return rename(old_dir.c_str(), new_dir.c_str()) == 0;
 	}
 }

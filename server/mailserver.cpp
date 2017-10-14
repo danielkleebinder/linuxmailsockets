@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 // Include custom classes
 #include "filesystem.h"
@@ -104,6 +105,9 @@ void register_signal_handler() {
  * @return Program exit code.
  */
 int main(int argc, char** argv) {
+	// Initialize random values
+	srand(time(NULL));
+
 	// Register all used signal handlers
 	register_signal_handler();
 
@@ -128,8 +132,19 @@ int main(int argc, char** argv) {
 	}
 
 
+	email mail;
+	mail.set_sender("Daniel");
+	mail.set_receiver("Receiver");
+	mail.set_subject("Subject");
+	mail.set_message("This is\na simple test text\nfor this email");
+
+
 	// Initializes and sets up the mail pool
 	mailpoolservice mps = mailpoolservice(directory);
+	if (!mps.save_mail(mail)) {
+		cout << "Could not write email!" << endl;
+	}
+
 	cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
 
 	// Start server
