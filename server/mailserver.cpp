@@ -149,7 +149,7 @@ void initialize_mailpool(string directory) {
  * @param argv Argument array.
  * @return Program exit code.
  */
-int main (int argc, char** argv) {
+int main(int argc, char** argv) {
 	socklen_t addrlen;
 	char buffer[BUF];
 	int c;
@@ -201,7 +201,7 @@ int main (int argc, char** argv) {
 	address.sin_port = htons(port);
 
 	// Bind the socket
-	if (bind(server_socket, (struct sockaddr *) &address, sizeof (address)) != 0) {
+	if (bind(server_socket, (struct sockaddr *) &address, sizeof(address)) != 0) {
 		fprintf(stderr, "%s error: Bind Error, could not bind server socket\n", program_name.c_str());
 		return EXIT_FAILURE;
 	}
