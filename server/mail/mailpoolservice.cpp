@@ -24,9 +24,7 @@ mailpoolservice::~mailpoolservice() {}
 
 
 void mailpoolservice::create_dir_hierarchy(std::string dir) {
-	if (!fs::make_dir_rec(dir)) {
-		throw std::runtime_error("Could not create mail pool directory: " + dir);
-	}
+	fs::make_dir_rec(dir);
 }
 
 

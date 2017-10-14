@@ -51,6 +51,30 @@ static net::sserversocket* ss;
 
 
 /**
+ * Shows a simple help dialog.
+ *
+ * @param program_name Program execution name.
+ */
+void help(string program_name) {
+	cout << endl << endl;
+	cout << "Help for executed program \"" << program_name << "\" MailSockets!" << endl << endl << endl;
+	cout << "This program is a low level C/C++ Linux system implementation of an SMTP" << endl;
+	cout << "service for loca use. An example call could look like the following:" << endl;
+	cout << "     ./mailserver -d /mail/pool/dir -p 8080" << endl << endl << endl;
+	cout << "Parameters:" << endl;
+	cout << "     -d  -  Specifies the diretory which should be used as mailpool to" << endl;
+	cout << "            store all sent E-Mails there. Nothing will be done if the" << endl;
+	cout << "            directory already exists, otherwise it will be created." << endl << endl;
+	cout << "     -p  -  Specifies the port on which the server (SMTP Service) will" << endl;
+	cout << "            be available. (localhost:port)." << endl << endl << endl;
+	cout << "Most Common Errors:" << endl;
+	cout << "     .) Could not bind address: This error occurs if the given port number" << endl;
+	cout << "                                is already occupied." << endl << endl;
+}
+
+
+
+/**
  * Handles the termination (CTRL-C) signal.
  *
  * @param sig Signal ID.
@@ -85,12 +109,13 @@ int main(int argc, char** argv) {
 
 	// Parse Program Parameters
 	string program_name = argv[0];
-	string directory = "./mailpool/";
+	string directory = "mailpool";
 	int port = 6543, c;
 	while ((c = getopt(argc, argv, "p:d:")) != EOF) {
 		switch (c) {
 			case '?':
 				fprintf(stderr, "%s error: Unknown parameter\n", program_name.c_str());
+				help(program_name);
 				exit(1);
 				break;
 			case 'p':
@@ -120,6 +145,7 @@ int main(int argc, char** argv) {
 		}
 	} catch(exception& ex) {
 		cout << ex.what() << endl;
+		help(program_name);
 		exit(4);
 	}
 
