@@ -14,12 +14,12 @@ public:
 	stream(int handler);
 	virtual ~stream();
 
-	void close();
+	void close_stream();
 
-	char read();
-	std::string readline();
-	void write(char ch);
-	void write(std::string str);
+	char sread();
+	std::string sreadline();
+	void swrite(char ch);
+	void swrite(std::string str);
 
 protected:
 	int _handler;

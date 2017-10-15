@@ -11,7 +11,6 @@
 // Include C++/11 Headers
 #include <string>
 #include <iostream>
-#include <thread>
 
 // Include C system libaries
 #include <sys/types.h>
@@ -23,73 +22,51 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 // Include custom classes
-#include "email.h"
-#include "smtphandler.h"
 #include "filesystem.h"
 #include "netutils.h"
 
+#include "net/stream.h"
+#include "net/socket.h"
+#include "net/serversocket.h"
 
-//Defines
-#define BUF 1024
-#define ARCHIVE "ARCHIVE_D"
+#include "mail/email.h"
+#include "mail/smtpservice.h"
+#include "mail/mailpoolservice.h"
 
 
 
 // Define standard used namespaces
 using namespace std;
-using namespace netutils;
-using namespace fs;
 
 
 // Globally used variables
-static volatile int server_socket;
+static net::sserversocket* ss;
 
 
 
 /**
- * Handles the connection from a client.
+ * Shows a simple help dialog.
  *
- * @param socket Connected client socket.
+ * @param program_name Program execution name.
  */
-void connected(int socket) {
-	smtphandler handler(socket);
-	string line;
-	do {
-		// Read line by line using the netutils utility namespace
-		line = readline(socket);
-
-		// Check if line is null or empty
-		if (line.empty()) {
-			continue;
-		}
-
-		// Start correct mail protocol
-		if (line == "SEND") {
-			handler.send();
-		}
-
-		if (line == "LIST") {
-			handler.list();
-		}
-
-		if (line == "READ") {
-			handler.read();
-		}
-
-		if (line == "DEL") {
-			handler.del();
-		}
-
-		// Print received message
-		cout << "Message Received: " << line << endl;
-	} while (line != "quit");
-
-	// Closing the socket
-	handler.quit();
-	cout << "Closing socket ID-" << socket << endl;
-	close(socket);
+void help(string program_name) {
+	cout << endl << endl;
+	cout << "Help for executed program \"" << program_name << "\" MailSockets!" << endl << endl << endl;
+	cout << "This program is a low level C/C++ Linux system implementation of an SMTP" << endl;
+	cout << "service for loca use. An example call could look like the following:" << endl;
+	cout << "     ./mailserver -d /mail/pool/dir -p 8080" << endl << endl << endl;
+	cout << "Parameters:" << endl;
+	cout << "     -d  -  Specifies the diretory which should be used as mailpool to" << endl;
+	cout << "            store all sent E-Mails there. Nothing will be done if the" << endl;
+	cout << "            directory already exists, otherwise it will be created." << endl << endl;
+	cout << "     -p  -  Specifies the port on which the server (SMTP Service) will" << endl;
+	cout << "            be available. (localhost:port)." << endl << endl << endl;
+	cout << "Most Common Errors:" << endl;
+	cout << "     .) Could not bind address: This error occurs if the given port number" << endl;
+	cout << "                                is already occupied." << endl << endl;
 }
 
 
@@ -100,11 +77,11 @@ void connected(int socket) {
  * @param sig Signal ID.
  */
 void int_handler(int sig) {
-	close(server_socket);
+	ss->close_socket();
+	delete ss;
 	cout << endl << "Server is shutting down!" << endl;
 	exit(EXIT_SUCCESS);
 }
-
 
 
 /**
@@ -117,32 +94,6 @@ void register_signal_handler() {
 
 
 /**
- * Initializes the mailpool and all used directories.
- *
- * @param directory Mailpool directory.
- */
-void initialize_mailpool(string directory) {
-	if (directory.back() != '/') {
-		directory.back() = '/';
-	}
-
-	// Create directories
-	if (!fs::exists(directory)) {
-		if (!fs::make_dir(directory)) {
-			fprintf(stderr, "Error: Can not create mail pool directory!");
-			exit(2);
-		}
-		if (!fs::make_dir(directory + ARCHIVE)) {
-			fprintf(stderr, "Error: Can not create archive directory!");
-			exit(2);
-		}
-	}
-}
-
-
-
-
-/**
  * Main program entry point.
  *
  * @param argc Argument count.
@@ -150,32 +101,19 @@ void initialize_mailpool(string directory) {
  * @return Program exit code.
  */
 int main(int argc, char** argv) {
-	socklen_t addrlen;
-	char buffer[BUF];
-	int c;
-	struct sockaddr_in address, cliaddress;
-
-	// Test for email class
-	email mail;
-	mail.set_sender("Daniel");
-	mail.set_receiver("Thomas");
-	mail.set_subject("First E-Mail Implementation");
-	mail.set_message("My message\n.\n");
-
-
-	// Register signal handler
+	// Register all used signal handlers
+	srand(time(NULL));
 	register_signal_handler();
-
 
 	// Parse Program Parameters
 	string program_name = argv[0];
-	string directory = "./mailpool/";
-	int port = 6543;
-
+	string directory = "mailpool";
+	int port = 6543, c;
 	while ((c = getopt(argc, argv, "p:d:")) != EOF) {
 		switch (c) {
 			case '?':
 				fprintf(stderr, "%s error: Unknown parameter\n", program_name.c_str());
+				help(program_name);
 				exit(1);
 				break;
 			case 'p':
@@ -189,45 +127,30 @@ int main(int argc, char** argv) {
 
 
 	// Initializes and sets up the mail pool
-	initialize_mailpool(directory);
+	// and try to start the server
+	try {
+		mailpoolservice mps(directory);
+		cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
 
+		// Start server
+		ss = new net::sserversocket(port);
+		while (true) {
+			cout << "Waiting for connections..." << endl;
+			net::ssocket connection = ss->accept_connection();
 
-	// Create the socket
-	server_socket = socket(AF_INET, SOCK_STREAM, 0);
-
-	memset(&address, 0, sizeof(address));
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = INADDR_ANY;
-	address.sin_port = htons(port);
-
-	// Bind the socket
-	if (bind(server_socket, (struct sockaddr *) &address, sizeof(address)) != 0) {
-		fprintf(stderr, "%s error: Bind Error, could not bind server socket\n", program_name.c_str());
-		return EXIT_FAILURE;
-	}
-	listen(server_socket, 5);
-	addrlen = sizeof(struct sockaddr_in);
-
-	cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
-
-
-	// Start server
-	while (true) {
-		cout << "Waiting for connections..." << endl;
-		int connection_socket = accept(server_socket, (struct sockaddr *) &cliaddress, &addrlen);
-		if (connection_socket > 0) {
-			printf("Client connected from %s:%d...\n", inet_ntoa(cliaddress.sin_addr), ntohs(cliaddress.sin_port));
-			strcpy(buffer,"Welcome to myserver, Please enter your command:\n");
-			send(connection_socket, buffer, strlen(buffer),0);
+			// Start smtp mail service and run in own thread
+			smtpservice smtps = smtpservice(connection, mps);
+			smtps.start_forked_service();
 		}
-
-		// Start connection thread
-		thread con_thread(connected, connection_socket);
-		con_thread.detach();
+	} catch(exception& ex) {
+		cout << ex.what() << endl;
+		help(program_name);
+		exit(4);
 	}
 
 	// Close server socket
-	close(server_socket);
+	ss->close_socket();
+	delete ss;
 	return EXIT_SUCCESS;
 }
 

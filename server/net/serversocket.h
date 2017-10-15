@@ -10,25 +10,24 @@
  *
  * (c) All rights reserved
  */
-class serversocket {
-public:
-	serversocket(int handler);
-	serversocket(std::string host, int port);
-	virtual ~serversocket();
+namespace net {
+	class sserversocket {
+	public:
+		sserversocket(int port);
+		virtual ~sserversocket();
 
-	std::string get_host();
-	int get_port();
+		int get_port();
 
-	void close();
+		void close_socket();
 
-	socket accept();
+		net::ssocket accept_connection();
 
-protected:
-	std::string _host;
-	int _port;
+	protected:
+		int _port;
 
-private:
-	int socket_handler;
-};
+	private:
+		int socket_handler;
+	};
+}
 
-#endif // SOCKET_H
+#endif // SERVERSOCKET_H
