@@ -127,11 +127,12 @@ int main(int argc, char** argv) {
 
 
 	// Initializes and sets up the mail pool
-	mailpoolservice mps = mailpoolservice(directory);
-	cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
-
-	// Start server
+	// and try to start the server
 	try {
+		mailpoolservice mps(directory);
+		cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
+
+		// Start server
 		ss = new net::sserversocket(port);
 		while (true) {
 			cout << "Waiting for connections..." << endl;
