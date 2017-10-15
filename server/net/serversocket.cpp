@@ -55,11 +55,18 @@ int net::sserversocket::get_port() {
 	return _port;
 }
 
+
 void net::sserversocket::close_socket() {
 	close(socket_handler);
 	socket_handler = -1;
 }
 
+
+/**
+ * Blocks until a new client tries to connect.
+ *
+ * @return Accepted socket connection.
+ */
 net::ssocket net::sserversocket::accept_connection() {
 	socklen_t addrlen = sizeof(struct sockaddr_in);
 	struct sockaddr_in client_address;

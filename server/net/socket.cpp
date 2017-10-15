@@ -61,18 +61,22 @@ std::string net::ssocket::get_host() {
 	return _host;
 }
 
+
 int net::ssocket::get_port() {
 	return _port;
 }
+
 
 int net::ssocket::get_handler_id() {
 	return socket_handler;
 }
 
+
 void net::ssocket::close_socket() {
 	close(socket_handler);
 	socket_handler = -1;
 }
+
 
 stream& net::ssocket::get_stream() {
 	return *_stream;

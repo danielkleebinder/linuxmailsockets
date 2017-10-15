@@ -39,6 +39,7 @@ char stream::sread() {
 	return ch;
 }
 
+
 std::string stream::sreadline() {
 	std::string result;
 	char ch;
@@ -65,12 +66,14 @@ std::string stream::sreadline() {
 	return result;	
 }
 
+
 void stream::swrite(char ch) {
 	int n = write(_handler, &ch, 1);
 	if (n < 1) {
 		throw std::runtime_error("Error while writing a character to the stream");
 	}
 }
+
 
 void stream::swrite(std::string str) {
 	int size = str.length();

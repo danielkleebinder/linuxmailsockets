@@ -37,10 +37,6 @@
 #include "mail/mailpoolservice.h"
 
 
-//Defines
-#define BUF 1024
-
-
 
 // Define standard used namespaces
 using namespace std;
@@ -105,10 +101,8 @@ void register_signal_handler() {
  * @return Program exit code.
  */
 int main(int argc, char** argv) {
-	// Initialize random values
-	srand(time(NULL));
-
 	// Register all used signal handlers
+	srand(time(NULL));
 	register_signal_handler();
 
 	// Parse Program Parameters
@@ -132,19 +126,8 @@ int main(int argc, char** argv) {
 	}
 
 
-	email mail;
-	mail.set_sender("Daniel");
-	mail.set_receiver("Receiver");
-	mail.set_subject("Subject");
-	mail.set_message("This is\na simple test text\nfor this email");
-
-
 	// Initializes and sets up the mail pool
 	mailpoolservice mps = mailpoolservice(directory);
-	if (!mps.save_mail(mail)) {
-		cout << "Could not write email!" << endl;
-	}
-
 	cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
 
 	// Start server

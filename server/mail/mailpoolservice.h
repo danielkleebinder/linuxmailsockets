@@ -26,7 +26,11 @@ public:
 	std::string get_basedir();
 
 private:
+	// Base mailpool directory
 	std::string basedir;
+	// Archive name should never have less than 8 characters
+	// to prevent users from accessing the "trash" folder.
+	// This will be prevented by the system anyways!
 	std::string archive_name;
 
 	void set_archive_name(std::string archive_name);

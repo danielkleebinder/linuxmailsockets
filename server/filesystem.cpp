@@ -21,25 +21,49 @@
 #include <mutex>
 
 
+// Contains utility methods for file access.
 namespace fs {
+
+	// Globally used file lock mutex
 	static std::mutex _mutex;
 
+
+	/**
+	 * Checks if the given file exists.
+	 *
+	 * @param fd File descriptor (handler).
+	 * @return True if file exsist, otherwise false.
+	 */
 	bool exists(std::string fd) {
 		struct stat info;
 		return stat(fd.c_str(), &info) == 0;
 	}
 
+
+	/**
+	 * Creates a new directory.
+	 *
+	 * @param dir Directory.
+	 * @return True if directory creation was successful.
+	 */
 	bool make_dir(std::string dir) {
 		return mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IRWXO) == 0;
 	}
 
+
+	/**
+	 * Creates directories recursivly.
+	 *
+	 * @param dir Directory.
+	 * @return True if directory creation was successful.
+	 */
 	bool make_dir_rec(std::string dir) {
-		const char* c_dir = dir.c_str();
 		char tmp[256];
 		char* p = NULL;
 		size_t len;
 
-		snprintf(tmp, sizeof(tmp), "%s", c_dir);
+		// Retreive first part of directory hierarchy
+		snprintf(tmp, sizeof(tmp), "%s", dir.c_str());
 		len = strlen(tmp);
 		if (tmp[len - 1] == '/') {
 			tmp[len - 1] = 0;
@@ -61,11 +85,27 @@ namespace fs {
 		}
 	}
 
+
+	/**
+	 * Creates the given file.
+	 *
+	 * @param file File.
+	 * @return True if file was successfully created.
+	 */
 	bool make_file(std::string file) {
 		std::ofstream out(file);
 		return true;
 	}
 
+
+	/**
+	 * Appends the given text to the file.
+	 *
+	 * @param file File to append text on.
+	 * @param text Text.
+	 * @param linefeed If a line feed should be appended at the end of the text-
+	 * @return True if text was successfully appended.
+	 */
 	bool file_append_text(std::string file, std::string text, bool linefeed) {
 		{
 			raiilock sl(_mutex);
@@ -80,6 +120,13 @@ namespace fs {
 		return true;
 	}
 
+
+	/**
+	 * Lists all files and directories in the given directory.
+	 *
+	 * @param dir Directory.
+	 * @return List of all files (directories and files).
+	 */
 	std::vector<std::string> list_files(std::string dir) {
 		DIR* c_dir;
 		struct dirent* entry;
@@ -104,6 +151,14 @@ namespace fs {
 		return result;
 	}
 
+
+	/**
+	 * Moves a given directory to another one.
+	 *
+	 * @param old_dir Old directory which should be moved.
+	 * @param new_dir New directory to move to.
+	 * @return True if directory was successfully moved.
+	 */
 	bool move_dir(std::string old_dir, std::string new_dir) {
 		raiilock sl(_mutex);
 		return rename(old_dir.c_str(), new_dir.c_str()) == 0;

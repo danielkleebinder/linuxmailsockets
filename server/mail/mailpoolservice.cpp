@@ -12,7 +12,6 @@
 
 #include <string>
 #include <vector>
-#include <iostream>
 #include <stdexcept>
 #include <fstream>
 #include <sstream>
@@ -24,6 +23,7 @@
 // Defines
 #define MAIL_NAME "mail.txt"
 #define ATTACHMENT_DIR "attachments"
+
 
 
 mailpoolservice::mailpoolservice(std::string basedir)
@@ -44,6 +44,7 @@ mailpoolservice::mailpoolservice(std::string basedir)
 mailpoolservice::~mailpoolservice() {}
 
 
+
 void mailpoolservice::create_dir_hierarchy(std::string dir) {
 	fs::make_dir_rec(dir);
 }
@@ -57,6 +58,11 @@ bool mailpoolservice::save_mail(email& mail) {
 	std::string uuiddir = concat_dir(userdir, uuid);
 	std::string mailtxt = concat_dir(uuiddir, MAIL_NAME);
 	std::string attadir = concat_dir(uuiddir, ATTACHMENT_DIR);
+
+	// Check if receiver is the archive
+	if (mail.get_receiver() == archive_name) {
+		return false;
+	}
 
 	// Check if user directory exists
 	if (!fs::exists(attadir)) {
@@ -73,13 +79,18 @@ bool mailpoolservice::save_mail(email& mail) {
 	return true;
 }
 
+
 email mailpoolservice::load_mail(std::string username, unsigned int mail_id) {
 	std::vector<email> mails = load_user_mails(username);
+	if (username == archive_name) {
+		throw std::runtime_error("Username is not allowed to be the same as the archive name");
+	}
 	if (mails.size() < mail_id) {
 		throw std::runtime_error("Mail ID is out of range!");
 	}
 	return mails.at(mail_id - 1);
 }
+
 
 bool mailpoolservice::delete_mail(std::string username, unsigned int mail_id) {
 	// Create all used directory strings
@@ -88,7 +99,7 @@ bool mailpoolservice::delete_mail(std::string username, unsigned int mail_id) {
 	std::string userdir = concat_dir(basedir, username);
 
 	// Check if user even has an email account with emails
-	if (!fs::exists(userdir)) {
+	if (!fs::exists(userdir) || username == archive_name) {
 		return false;
 	}
 
@@ -105,16 +116,19 @@ bool mailpoolservice::delete_mail(std::string username, unsigned int mail_id) {
 	}
 
 	// Finally move the email to the archive
-	std::string maildir = concat_dir(userdir, files.at(mail_id - 1));
-	return fs::move_dir(maildir, udeldir);
+	std::string dirname = files.at(mail_id - 1);
+	std::string maildir = concat_dir(userdir, dirname);
+	std::string deledir = concat_dir(udeldir, dirname);
+	return fs::move_dir(maildir, deledir);
 }
+
 
 std::vector<email> mailpoolservice::load_user_mails(std::string username) {
 	std::vector<email> result;
 	std::string userdir = concat_dir(basedir, username);
 
 	// Check if the user even has an email account
-	if (!fs::exists(userdir)) {
+	if (!fs::exists(userdir) || username == archive_name) {
 		return result;
 	}
 
@@ -129,14 +143,19 @@ std::vector<email> mailpoolservice::load_user_mails(std::string username) {
 	return result;
 }
 
+
 std::string mailpoolservice::get_basedir() {
 	return basedir;
 }
 
 
 void mailpoolservice::set_archive_name(std::string archive_name) {
+	if (archive_name.empty() || archive_name.length() <= 0) {
+		throw std::runtime_error("Archive name can't be empty!");
+	}
 	this->archive_name = archive_name;
 }
+
 
 std::string mailpoolservice::get_archive_name() {
 	return archive_name;
@@ -178,6 +197,7 @@ email mailpoolservice::parse_mail_dir(std::string mail_dir) {
 	return result;
 }
 
+
 std::string mailpoolservice::concat_dir(std::string first, std::string last) {
 	if (first.back() != '/') {
 		first += '/';
@@ -185,15 +205,21 @@ std::string mailpoolservice::concat_dir(std::string first, std::string last) {
 	return first + last;
 }
 
+
 std::string mailpoolservice::next_uuid() {
 //	uuid_t uuid;
 //	uuid_generate(uuid);
 
 	// REPLACE WITH UUID!!
-	int uuid = rand();
-
+	// Artificial ID
 	std::stringstream result;
-	result << uuid;
+	for (int i = 0; i < 16; i++) {
+		result << ((char) ((rand() % 25) + 97));
+		if ((i + 1) % 5 == 0) {
+			result << '-';
+		}
+	}
+	result << '-';
+	result << rand();
 	return result.str();
 }
-

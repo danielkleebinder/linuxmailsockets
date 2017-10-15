@@ -10,6 +10,7 @@
 #include <string>
 
 
+// Contains some network related utility methods
 namespace netutils {
 
 	/*

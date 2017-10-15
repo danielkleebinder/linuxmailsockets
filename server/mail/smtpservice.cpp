@@ -29,9 +29,11 @@ void smtpservice::start_forked_service() {
 	con_thread.detach();
 }
 
+
 void smtpservice::start_service() {
 	run_protocol(std::ref(socket));
 }
+
 
 /**
  * Handles the connection from a client.
@@ -87,14 +89,12 @@ void smtpservice::send() {
 		mail.set_subject(in.sreadline());
 
 		// Read message until the char sequence "\n.\n" occurs
-		std::stringstream ss, message;
-		ss << std::endl << "." << std::endl;
-		std::string msg_ending = ss.str();
-		std::string line, final_msg;
+		std::stringstream message;
+		std::string msg_ending = "\n.\n";
+		std::string final_msg;
 		while (true) {
-			line = in.sreadline();
-			message << line;
-			message << std::endl;
+			message << in.sreadline();
+			message << '\n';
 			final_msg = message.str();
 			if (final_msg.substr(final_msg.length() - msg_ending.length()) == msg_ending) {
 				break;
@@ -113,6 +113,7 @@ void smtpservice::send() {
 	in.swrite("OK\n");
 }
 
+
 void smtpservice::list() {
 	stream in = socket.get_stream();
 
@@ -122,7 +123,6 @@ void smtpservice::list() {
 
 		// List total amount of messages
 		std::stringstream ss;
-		ss << "Number of available messages: ";
 		ss << mails.size();
 		ss << std::endl;
 		in.swrite(ss.str());
@@ -142,6 +142,7 @@ void smtpservice::list() {
 		return;
 	}
 }
+
 
 void smtpservice::read() {
 	stream in = socket.get_stream();
@@ -170,6 +171,7 @@ void smtpservice::read() {
 	}
 }
 
+
 void smtpservice::del() {
 	stream in = socket.get_stream();
 
@@ -190,6 +192,7 @@ void smtpservice::del() {
 		in.swrite("ERR\n");
 	}
 }
+
 
 void smtpservice::quit() {
 	std::cout << "User quits the mail server!" << std::endl;
