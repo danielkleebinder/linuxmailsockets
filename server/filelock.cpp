@@ -34,7 +34,7 @@ filelock::~filelock() {
 
 bool filelock::try_lock(bool block) {
 	// Try to open the file
-	fd = open(fn.c_str(), O_RDWR | O_CREAT, 0666);
+	fd = open(fn.c_str(), O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
 
 	// File not found
 	if (fd < 0) {
