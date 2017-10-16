@@ -17,6 +17,7 @@
 #include <sstream>
 
 #include <uuid/uuid.h>
+#include <sys/time.h>
 #include <stdlib.h>
 
 
@@ -27,7 +28,7 @@
 
 
 mailpoolservice::mailpoolservice(std::string basedir)
-	: basedir(basedir), archive_name("DEL_ARCHIVE_USR") {
+	: basedir(basedir), archive_name("DEL_ARCHIVE_USR"), current_id(0) {
 	if (basedir.empty()) {
 		throw std::runtime_error("Mailpool directory can't be empty!");
 	}
@@ -212,14 +213,20 @@ std::string mailpoolservice::next_uuid() {
 
 	// REPLACE WITH UUID!!
 	// Artificial ID
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	long ms = now.tv_sec * 1000 + now.tv_usec / 1000;
+
 	std::stringstream result;
+	result << ms;
+	result << '-';
+	result << (++current_id);
+	result << '-';
 	for (int i = 0; i < 16; i++) {
 		result << ((char) ((rand() % 25) + 97));
 		if ((i + 1) % 5 == 0) {
 			result << '-';
 		}
 	}
-	result << '-';
-	result << rand();
 	return result.str();
 }
