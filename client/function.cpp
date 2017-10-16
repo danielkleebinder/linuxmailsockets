@@ -19,20 +19,59 @@
 
 using namespace std;
 
+/*
+function readline
+  @param:
+    char* buffer: pointer to a chararray
+          whitch is to be modified
+    create_socket: the network socket
+    max: the maximum on aviable space in the char array
+reads the socket one char at a time until a newline
+and saves it in a chararray
+*/
+void readline(char* buffer,int create_socket,int max)
+{
+  char c;
+  int size = 0;
+  int i = 0;
+
+  do{
+    if(i < max)
+    {
+      size = read(create_socket, &c, 1);
+      buffer[i] = c;
+    }
+    else
+    {
+      printf("error while reading socket, message was to long\n");
+      return;
+    }
+    if(size <= 0)
+    {
+      printf("error while reading socket\n");
+      return;
+    }
+    i++;
+  }while(c != '\n');
+  buffer[i] = '\0';
+}
+
 
 /*
-functon c_send
+function c_send
 sends the message to the server
 sends it in one big string
+server returns ok if successfull
 @param: the socket
 */
 void c_send(int create_socket)
 {
-  char sender[9];
-  char receiver[9];
-  char subject[81];
-  char message[BUF-200];
+  char sender[9] = "";
+  char receiver[9] = "";
+  char subject[81] = "";
+  char message[BUF-200] = "";
   char buffer[BUF] = "SEND\n";
+  char OK[5] = "";
 
   do {
     printf("Sender(max8)\n");
@@ -57,7 +96,18 @@ void c_send(int create_socket)
     fgets(message, BUF, stdin);
     strcat(buffer,message);
   }while(strcmp(message,".\n"));
-  send(create_socket,buffer,strlen(buffer),0);
+  printf("%s\n", buffer);
+  write(create_socket,buffer,strlen(buffer));
+
+  read(create_socket, OK,5);
+  if(strcmp(OK, "OK"))
+  {
+    printf("successfull\n");
+  }
+  else
+  {
+    printf("unsuccessfull\n");
+  }
 }
 
 /*
@@ -72,45 +122,27 @@ void c_list(int create_socket)
 {
   int size;
   int n = 0;
-  char amount[10];
-  char username[9];
-  char buffer[BUF];
-  char sending[20] = "LIST\n";
+  char amount[10] = "";
+  char username[9] = "";
+  char buffer[BUF] = "";
+  char tosend[20] = "LIST\n";
 
   do{
     printf("Please enter the username(max 8 zeichen)\n");
     fgets(username, 8, stdin);
   }while(strlen(username) > 8);
 
-  strcat(sending,username);
-  send(create_socket, sending, strlen(sending),0);
+  strcat(tosend,username);
+  send(create_socket, tosend, strlen(tosend),0);
 
-  size = read(create_socket, amount, 0);
+  readline(amount,create_socket,10);
   n = atoi(amount);
   printf("%d messages\n", n);
-  if(size <= 0)
-    return;
 
-  if(n <= 0)
-    return;
-
-  for(int i = 0; i < n; i++)
+  for(int i = 0;i < n; i++)
   {
-      size = read(create_socket, buffer, BUF-1);
-      if(size == 0)
-      {
-        printf("no remaining messages\n");
-        return;
-      }
-      else if(size < 0)
-      {
-        printf("error\n");
-        return;
-      }
-      else
-      {
-        printf("%s\n", buffer);
-      }
+    readline(buffer,create_socket,BUF);
+    printf("%s\n", buffer);
   }
 }
 
@@ -125,11 +157,11 @@ server sends ok if the message is there and the message as one big string
 void c_read(int create_socket)
 {
   int size;
-  char username[9];
-  char number[10];
-  char buffer[BUF];
+  char username[9]= "";
+  char number[10] = "";
+  char buffer[BUF] = "";
   char tosend[30] = "READ\n";
-  char OK[5];
+  char OK[10] = "";
 
   do{
     printf("Please enter the username(max 8)\n");
@@ -141,29 +173,18 @@ void c_read(int create_socket)
   fgets(number, 8, stdin);
   strcat(tosend, number);
 
-  send(create_socket, number, strlen(number), 0);
+  send(create_socket, tosend, strlen(tosend), 0);
 
-  size = read(create_socket, OK, 5);
-  if(!strcmp(OK, "OK"))
+  readline(OK, create_socket, 10);
+
+  if(!strcmp(OK,"OK"))
   {
+    printf("Error\n");
     return;
   }
-  size = read(create_socket,buffer,BUF-1);
 
-  if(size == 0)
-  {
-    printf("no remaining messages\n");
-  }
-  else if(size == -1)
-  {
-    printf("error\n");
-    return;
-  }
-  else
-  {
-    printf("%s\n", buffer);
-  }
-
+  read(create_socket,buffer,BUF-1);
+  printf("%s\n", buffer);
 }
 
 /*
@@ -200,7 +221,7 @@ void c_del(int create_socket)
     return;
   }
 
-  if(strcmp(buffer, "OK"))
+  if(strcmp(buffer, "OK\n"))
   {
     printf("Delete successfull\n");
   }

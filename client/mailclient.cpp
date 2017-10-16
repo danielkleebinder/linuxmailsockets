@@ -47,7 +47,6 @@ int main (int argc, char **argv) {
   {
      printf ("Connection with server (%s) established\n", inet_ntoa (address.sin_addr));
      //size=recv(create_socket,buffer,BUF-1, 0);
-     cout << "testitest" << endl;
      if (size>0)
      {
         buffer[size]= '\0';
@@ -64,10 +63,14 @@ char test[10];
   do
   {
     print_options();
-    scanf("%d", &options);
+    fgets(test,10,stdin);
+    options = atoi(test);
+    //scanf("%d", &options);
     //for some unkown reason it skipes the first fgets
     //so i added a dummy fgets
-    fgets(test,10,stdin);
+    //fgets(test,10,stdin);
+    //the problem was that scanf leaves a newline in the buffer and the next
+    //fgets reads the newline
     switch (options) {
       case 1: c_send(create_socket);
               break;
