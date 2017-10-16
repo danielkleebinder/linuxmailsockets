@@ -52,9 +52,13 @@ std::string stream::sreadline() {
 			break;
 		}
 
+		// Skip carriage return for DOS systems and programs like telnet
+		if (ch == '\r') {
+			continue;
+		}
+
 		// Check for end of line
-		if (ch == '\n' || ch == '\r' || ch == '\0') {
-			sread();		// Skip the UNIX line feed character <10>
+		if (ch == '\n'|| ch == '\0') {
 			break;
 		}
 

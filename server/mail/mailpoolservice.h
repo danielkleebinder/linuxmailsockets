@@ -32,6 +32,8 @@ private:
 	// to prevent users from accessing the "trash" folder.
 	// This will be prevented by the system anyways!
 	std::string archive_name;
+	// Running ID for mail naming
+	int current_id;
 
 	void set_archive_name(std::string archive_name);
 	std::string get_archive_name();
