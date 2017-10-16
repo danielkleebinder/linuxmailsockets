@@ -9,6 +9,7 @@
 #include "mailpoolservice.h"
 #include "email.h"
 #include "../filesystem.h"
+#include "../filelock.h"
 
 #include <string>
 #include <vector>
@@ -22,7 +23,8 @@
 
 
 // Defines
-#define MAIL_NAME "mail.txt"
+#define MAIL_NAME "mail.crn"
+#define LOCK_NAME "lock.lck"
 #define ATTACHMENT_DIR "attachments"
 
 
@@ -98,9 +100,16 @@ bool mailpoolservice::delete_mail(std::string username, unsigned int mail_id) {
 	std::string archdir = concat_dir(basedir, archive_name);
 	std::string udeldir = concat_dir(archdir, username);
 	std::string userdir = concat_dir(basedir, username);
+	std::string lockfil = concat_dir(userdir, LOCK_NAME);
 
 	// Check if user even has an email account with emails
 	if (!fs::exists(userdir) || username == archive_name) {
+		return false;
+	}
+
+	// Try to obtain a file lock on system level
+	filelock fl(lockfil);
+	if (!fl.try_lock(true)) {
 		return false;
 	}
 
@@ -167,10 +176,17 @@ std::string mailpoolservice::get_archive_name() {
 
 email mailpoolservice::parse_mail_dir(std::string mail_dir) {
 	std::string mailtxt = concat_dir(mail_dir, MAIL_NAME);
+	std::string lockfil = concat_dir(mail_dir, LOCK_NAME);
 
 	// Check if the email even exists
 	if (!fs::exists(mailtxt)) {
 		throw std::runtime_error("Mail file does not exist!");
+	}
+
+	// Obtain exclusive file lock by OS
+	filelock fl(lockfil);
+	if (!fl.try_lock(true)) {
+		throw std::runtime_error("Not able to obtain lock!");
 	}
 
 	email result;
