@@ -19,7 +19,7 @@
 
 
 smtpservice::smtpservice(net::ssocket& socket, mailpoolservice& mps)
-	: socket(socket), mps(mps) {}
+	: socket(socket), mps(mps), debug(false) {}
 
 smtpservice::~smtpservice() {}
 
@@ -33,6 +33,17 @@ void smtpservice::start_forked_service() {
 void smtpservice::start_service() {
 	run_protocol(std::ref(socket));
 }
+
+
+void smtpservice::set_debug_mode(bool debug) {
+	this->debug = debug;
+}
+
+
+bool smtpservice::get_debug_mode() {
+	return debug;
+}
+
 
 
 /**
@@ -69,6 +80,11 @@ void smtpservice::run_protocol(net::ssocket& con_sock) {
 		if (line == "DEL") {
 			del();
 		}
+
+		// Output debug
+		if (debug) {
+			std::cout << "(DM) Read line: " << line << std::endl;
+		}
 	} while (line != "quit");
 
 	// Closing the socket
@@ -88,6 +104,12 @@ void smtpservice::send() {
 		mail.set_receiver(in.sreadline());
 		mail.set_subject(in.sreadline());
 
+		if (debug) {
+			std::cout << "(DM) SEND Protocol: " << mail.get_sender() << std::endl;
+			std::cout << "(DM) SEND Protocol: " << mail.get_receiver() << std::endl;
+			std::cout << "(DM) SEND Protocol: " << mail.get_subject() << std::endl;
+		}
+	
 		// Read message until the char sequence "\n.\n" occurs
 		std::stringstream message;
 		std::string msg_ending = "\n.\n";
@@ -121,6 +143,10 @@ void smtpservice::list() {
 		std::string username = in.sreadline();
 		std::vector<email> mails = mps.load_user_mails(username);
 
+		if (debug) {
+			std::cout << "(DM) LIST Protocol: " << username << std::endl;
+		}
+
 		// List total amount of messages
 		std::stringstream ss;
 		ss << mails.size();
@@ -128,10 +154,8 @@ void smtpservice::list() {
 		in.swrite(ss.str());
 
 		// List all messages with numbers
-		int index = 0;
 		for (email current : mails) {
 			ss.str(std::string());
-			ss << " " << (++index) << ".) ";
 			ss << current.get_subject();
 			ss << std::endl;
 			in.swrite(ss.str());
@@ -150,6 +174,11 @@ void smtpservice::read() {
 	try {
 		std::string username = in.sreadline();
 		int msg_num = atoi(in.sreadline().c_str());
+
+		if (debug) {
+			std::cout << "(DM) READ Protocol: " << username << std::endl;
+			std::cout << "(DM) READ Protocol: " << msg_num << std::endl;
+		}
 
 		// Load mail
 		email mail = mps.load_mail(username, msg_num);
@@ -178,6 +207,11 @@ void smtpservice::del() {
 	try {
 		std::string username = in.sreadline();
 		int msg_num = atoi(in.sreadline().c_str());
+
+		if (debug) {
+			std::cout << "(DM) DEL Protocol: " << username << std::endl;
+			std::cout << "(DM) DEL Protocol: " << msg_num << std::endl;
+		}
 
 		// Delete mail
 		if (mps.delete_mail(username, msg_num)) {
