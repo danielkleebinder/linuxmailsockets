@@ -76,18 +76,21 @@ void c_send(int create_socket)
   do {
     printf("Sender(max8)\n");
     fgets(sender, 8, stdin);
+    fflush(stdin);
   } while(strlen(sender) > 8);
   strcat(buffer,sender);
 
   do{
     printf("Receiver(max 8)\n");
     fgets(receiver, 8, stdin);
+    fflush(stdin);
   }while(strlen(receiver) > 8);
   strcat(buffer,receiver);
 
   do{
     printf("subject(max 80)\n");
     fgets(subject, 80, stdin);
+    fflush(stdin);
   }while(strlen(subject) > 80);
   strcat(buffer,subject);
 
@@ -120,7 +123,7 @@ all messanges one after another
 */
 void c_list(int create_socket)
 {
-  int size;
+  //int size;
   int n = 0;
   char amount[10] = "";
   char username[9] = "";
@@ -130,6 +133,7 @@ void c_list(int create_socket)
   do{
     printf("Please enter the username(max 8 zeichen)\n");
     fgets(username, 8, stdin);
+    fflush(stdin);
   }while(strlen(username) > 8);
 
   strcat(tosend,username);
@@ -142,7 +146,7 @@ void c_list(int create_socket)
   for(int i = 0;i < n; i++)
   {
     readline(buffer,create_socket,BUF);
-    printf("%s\n", buffer);
+    printf("%d) %s\n", i+1,buffer);
   }
 }
 
@@ -156,7 +160,7 @@ server sends ok if the message is there and the message as one big string
 */
 void c_read(int create_socket)
 {
-  int size;
+  //int size;
   char username[9]= "";
   char number[10] = "";
   char buffer[BUF] = "";
@@ -166,11 +170,13 @@ void c_read(int create_socket)
   do{
     printf("Please enter the username(max 8)\n");
     fgets(username, 8, stdin);
+    fflush(stdin);
   }while(strlen(username)> 8);
   strcat(tosend,username);
 
   printf("What message do you want to read\n");
   fgets(number, 8, stdin);
+  fflush(stdin);
   strcat(tosend, number);
 
   send(create_socket, tosend, strlen(tosend), 0);
@@ -205,11 +211,13 @@ void c_del(int create_socket)
   do{
     printf("Please enter the username\n");
     fgets(username, 8, stdin);
+    fflush(stdin);
   }while(strlen(username) > 8);
   strcat(tosend,username);
 
   printf("What message do you want to delete\n");
   fgets(number, 8, stdin);
+  fflush(stdin);
   strcat(tosend,number);
   send(create_socket, tosend,strlen(tosend),0);
 
@@ -241,9 +249,9 @@ void c_quit(int create_socket)
 //prints the options
 void print_options()
 {
-    cout << "What do you wanne do?" << endl;
+    cout << "What do you want to do?" << endl;
     cout << "1. Send message" << endl;
-    cout << "2. List of all Messages you send" << endl;
+    cout << "2. List of all Messages you received" << endl;
     cout << "3. Read a spezific Message" << endl;
     cout << "4. Delete a spezific Message" << endl;
     cout << "5. Quit" << endl;
