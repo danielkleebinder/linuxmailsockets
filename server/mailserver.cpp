@@ -63,7 +63,9 @@ void help(string program_name) {
 	cout << "            store all sent E-Mails there. Nothing will be done if the" << endl;
 	cout << "            directory already exists, otherwise it will be created." << endl << endl;
 	cout << "     -p  -  Specifies the port on which the server (SMTP Service) will" << endl;
-	cout << "            be available. (localhost:port)." << endl << endl << endl;
+	cout << "            be available. (localhost:port)." << endl << endl;
+	cout << "     -o  -  Enables the debug option which writes some server information" << endl;
+	cout << "            to the standard output." << endl << endl << endl;
 	cout << "Most Common Errors:" << endl;
 	cout << "     .) Could not bind address: This error occurs if the given port number" << endl;
 	cout << "                                is already occupied." << endl << endl;
@@ -109,12 +111,16 @@ int main(int argc, char** argv) {
 	string program_name = argv[0];
 	string directory = "mailpool";
 	int port = 6543, c;
-	while ((c = getopt(argc, argv, "p:d:")) != EOF) {
+	bool debug = false;
+	while ((c = getopt(argc, argv, "op:d:")) != EOF) {
 		switch (c) {
 			case '?':
 				fprintf(stderr, "%s error: Unknown parameter\n", program_name.c_str());
 				help(program_name);
 				exit(1);
+				break;
+			case 'o':
+				debug = true;
 				break;
 			case 'p':
 				port = atoi(optarg);
@@ -130,6 +136,7 @@ int main(int argc, char** argv) {
 	// and try to start the server
 	try {
 		mailpoolservice mps(directory);
+		cout << "Debug Mode: " << (debug ? "On" : "Off") << endl;
 		cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
 
 		// Start server
@@ -140,6 +147,7 @@ int main(int argc, char** argv) {
 
 			// Start smtp mail service and run in own thread
 			smtpservice smtps = smtpservice(connection, mps);
+			smtps.set_debug_mode(debug);
 			smtps.start_forked_service();
 		}
 	} catch(exception& ex) {

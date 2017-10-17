@@ -22,6 +22,10 @@ public:
 	// Starts the SMTP protocol in the main thread
 	void start_service();
 
+	// Allow debug mode
+	void set_debug_mode(bool debug);
+	bool get_debug_mode();
+
 protected:
 	// Standard SMTP functions are virtual for newer
 	// protocols to override and reimplement them.
@@ -37,6 +41,7 @@ protected:
 private:
 	net::ssocket& socket;
 	mailpoolservice& mps;
+	bool debug;
 };
 
 
