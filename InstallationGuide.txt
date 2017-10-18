@@ -1,0 +1,37 @@
+HOW TO INSTALL
+
+
+
+1.) Gather all source files
+This should be the easiest step. All source files should already
+be included. If this is not the case, try cloning/forking the git
+directory from:
+https://github.com/danielkleebinder/linuxmailsockets
+for example.
+
+
+2.) Creating the executables
+There should now be two directories available (at least) called
+"server/" and "client/". Both contain so called "Makefiles" which
+allow for compilation on Linux systems.
+
+Use the command "make" in your bash to create the executable
+files. Make sure that you are already in either the "client/" or the
+"server/" directory! Both applications (server and client) need to
+be compiled separately!
+
+
+3.) Running the application
+Use the command "./<application-name> <param-1> <param-2> ..." to
+run the program. This will work for both client and server. Please
+check the servers help-page for further information about parameters
+and possible errors which may occur!
+
+
+4.) Contact
+Please contact
+ .) KLEEBINDER Daniel
+ .) SCHACHNER Thomas
+if you need further help with the applications!
+
+

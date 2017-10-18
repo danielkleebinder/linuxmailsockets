@@ -118,6 +118,13 @@ void smtpservice::send() {
 			message << in.sreadline();
 			message << '\n';
 			final_msg = message.str();
+
+			// Check if it is even possible to quit the message yet
+			if (final_msg.length() < msg_ending.length()) {
+				continue;
+			}
+
+			// Check if the message terminated successfully
 			if (final_msg.substr(final_msg.length() - msg_ending.length()) == msg_ending) {
 				break;
 			}
@@ -149,15 +156,13 @@ void smtpservice::list() {
 
 		// List total amount of messages
 		std::stringstream ss;
-		ss << mails.size();
-		ss << std::endl;
+		ss << mails.size() << '\n';
 		in.swrite(ss.str());
 
 		// List all messages with numbers
 		for (email current : mails) {
 			ss.str(std::string());
-			ss << current.get_subject();
-			ss << std::endl;
+			ss << current.get_subject() << '\n';
 			in.swrite(ss.str());
 		}
 	} catch(std::exception& ex) {
@@ -184,11 +189,10 @@ void smtpservice::read() {
 		email mail = mps.load_mail(username, msg_num);
 
 		// Nothing has thrown an exception, everything is fine so far
-		std::stringstream ss;
-		ss << "OK" << std::endl;
-		in.swrite(ss.str());
+		in.swrite("OK\n");
 
 		// Send E-Mail message
+		std::stringstream ss;
 		ss.str(std::string());
 		ss << mail.get_message();
 		ss << std::endl;
@@ -215,9 +219,7 @@ void smtpservice::del() {
 
 		// Delete mail
 		if (mps.delete_mail(username, msg_num)) {
-			std::stringstream ss;
-			ss << "OK" << std::endl;
-			in.swrite(ss.str());
+			in.swrite("OK\n");
 		} else {
 			in.swrite("ERR\n");
 		}
@@ -231,6 +233,6 @@ void smtpservice::del() {
 void smtpservice::quit() {
 	std::cout << "User quits the mail server!" << std::endl;
 	std::stringstream ss;
-	ss << "Disconnected from the server!" << std::endl;
+	ss << "Disconnected from the server!\n";
 	socket.get_stream().swrite(ss.str());
 }
