@@ -66,30 +66,30 @@ server returns ok if successfull
 */
 void c_send(int create_socket)
 {
-  char sender[9] = "";
-  char receiver[9] = "";
-  char subject[81] = "";
+  char sender[BUF] = "";
+  char receiver[BUF] = "";
+  char subject[BUF] = "";
   char message[BUF] = "";
   char buffer[BUF] = "SEND\n";
   char OK[5] = "";
 
   do {
     printf("Sender (Max 8 Characters): ");
-    fgets(sender, 8, stdin);
+    fgets(sender, BUF, stdin);
     fflush(stdin);
   } while(strlen(sender) > 8);
   strcat(buffer,sender);
 
   do{
     printf("Receiver (Max 8 Characters): ");
-    fgets(receiver, 8, stdin);
+    fgets(receiver, BUF, stdin);
     fflush(stdin);
   }while(strlen(receiver) > 8);
   strcat(buffer,receiver);
 
   do{
     printf("Subject (Max 80 Characters): ");
-    fgets(subject, 80, stdin);
+    fgets(subject, BUF, stdin);
     fflush(stdin);
   }while(strlen(subject) > 80);
   strcat(buffer,subject);
@@ -103,7 +103,7 @@ void c_send(int create_socket)
   }while(strcmp(message,".\n"));
 
   read(create_socket, OK,5);
-  if(strcmp(OK, "OK"))
+  if(strcmp(OK, "OK\n") == 0)
   {
     printf("Sent mail successfully!\n");
   }
@@ -111,6 +111,7 @@ void c_send(int create_socket)
   {
     printf("An error occurred, please try again later!\n");
   }
+  printf("\n\n");
 }
 
 /*
@@ -126,13 +127,13 @@ void c_list(int create_socket)
   //int size;
   int n = 0;
   char amount[10] = "";
-  char username[9] = "";
+  char username[BUF] = "";
   char buffer[BUF] = "";
-  char tosend[20] = "LIST\n";
+  char tosend[BUF] = "LIST\n";
 
   do{
     printf("Please enter a username (Max 8 Characters): ");
-    fgets(username, 8, stdin);
+    fgets(username, BUF, stdin);
     fflush(stdin);
   }while(strlen(username) > 8);
 
@@ -148,6 +149,7 @@ void c_list(int create_socket)
     readline(buffer,create_socket,BUF);
     printf(" %d.) %s\n", i+1,buffer);
   }
+  printf("\n\n");
 }
 
 /*
@@ -161,15 +163,15 @@ server sends ok if the message is there and the message as one big string
 void c_read(int create_socket)
 {
   //int size;
-  char username[9]= "";
-  char number[10] = "";
+  char username[BUF]= "";
+  char number[BUF] = "";
   char buffer[BUF] = "";
-  char tosend[30] = "READ\n";
+  char tosend[BUF] = "READ\n";
   char OK[10] = "";
 
   do{
     printf("Please enter a username (Max 8 Characters): ");
-    fgets(username, 8, stdin);
+    fgets(username, BUF, stdin);
     fflush(stdin);
   }while(strlen(username)> 8);
   strcat(tosend,username);
@@ -183,7 +185,7 @@ void c_read(int create_socket)
 
   readline(OK, create_socket, 10);
 
-  if(!strcmp(OK,"OK"))
+  if(!strcmp(OK,"OK\n") != 0)
   {
     printf("Error\n");
     return;
@@ -210,20 +212,20 @@ server sends ok if the message was deleted
 void c_del(int create_socket)
 {
   int size;
-  char username[9];
-  char number[10];
+  char username[BUF];
+  char number[BUF];
   char buffer[BUF];
   char tosend[30] = "DEL\n";
 
   do{
     printf("Please enter a username (Max 8 Characters): ");
-    fgets(username, 8, stdin);
+    fgets(username, BUF, stdin);
     fflush(stdin);
   }while(strlen(username) > 8);
   strcat(tosend,username);
 
   printf("Enter the message number you want to delete: ");
-  fgets(number, 8, stdin);
+  fgets(number, BUF, stdin);
   fflush(stdin);
   strcat(tosend,number);
   send(create_socket, tosend,strlen(tosend),0);
@@ -236,7 +238,7 @@ void c_del(int create_socket)
     return;
   }
 
-  if(strcmp(buffer, "OK\n"))
+  if(strcmp(buffer, "OK\n") == 0)
   {
     printf("Successfully deleted the message!\n");
   }
