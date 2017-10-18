@@ -232,7 +232,13 @@ void smtpservice::quit() {
 	std::cout << "User quits the mail server!" << std::endl;
 	std::stringstream ss;
 	ss << "Disconnected from the server!\n";
-	socket.get_stream().swrite(ss.str());
+	try {
+		socket.get_stream().swrite(ss.str());
+	} catch (std::exception& ex) {
+		if (debug) {
+			std::cout << "(DM) Socket already closed: " << ex.what() << std::endl;
+		}
+	}
 }
 
 
