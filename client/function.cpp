@@ -103,7 +103,7 @@ void c_send(int create_socket)
   }while(strcmp(message,".\n"));
 
   read(create_socket, OK,5);
-  if(strcmp(OK, "OK\n") == 0)
+  if((OK[0] = 'O') && (OK[1] == 'K'))
   {
     printf("Sent mail successfully!\n");
   }
@@ -185,7 +185,7 @@ void c_read(int create_socket)
 
   readline(OK, create_socket, 10);
 
-  if(!strcmp(OK,"OK\n") != 0)
+  if(!((OK[0] = 'O') && (OK[1] == 'K')))
   {
     printf("Error\n");
     return;
@@ -238,7 +238,7 @@ void c_del(int create_socket)
     return;
   }
 
-  if(strcmp(buffer, "OK\n") == 0)
+  if((OK[0] = 'O') && (OK[1] == 'K'))
   {
     printf("Successfully deleted the message!\n");
   }
