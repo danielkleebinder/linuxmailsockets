@@ -69,7 +69,7 @@ void c_send(int create_socket)
   char sender[9] = "";
   char receiver[9] = "";
   char subject[81] = "";
-  char message[BUF-200] = "";
+  char message[BUF] = "";
   char buffer[BUF] = "SEND\n";
   char OK[5] = "";
 
@@ -94,13 +94,13 @@ void c_send(int create_socket)
   }while(strlen(subject) > 80);
   strcat(buffer,subject);
 
+  write(create_socket,buffer,strlen(buffer));
+
   printf("message (ends with newline.newline)\n");
   do{
     fgets(message, BUF, stdin);
-    strcat(buffer,message);
+    write(create_socket,message,strlen(message));
   }while(strcmp(message,".\n"));
-  printf("%s\n", buffer);
-  write(create_socket,buffer,strlen(buffer));
 
   read(create_socket, OK,5);
   if(strcmp(OK, "OK"))
@@ -189,8 +189,15 @@ void c_read(int create_socket)
     return;
   }
 
-  read(create_socket,buffer,BUF-1);
-  printf("%s\n", buffer);
+
+  printf("Message: \n");
+  while(strcmp(buffer, ".\n") != 0)
+  {
+    readline(buffer,create_socket,BUF);
+    printf("%s", buffer);
+  }
+  read(create_socket,buffer,BUF-1); //get rid of everything still in the stream
+  printf("\n\n");
 }
 
 /*
@@ -249,10 +256,11 @@ void c_quit(int create_socket)
 //prints the options
 void print_options()
 {
-    cout << "What do you want to do?" << endl;
-    cout << "1. Send message" << endl;
-    cout << "2. List of all Messages you received" << endl;
-    cout << "3. Read a spezific Message" << endl;
-    cout << "4. Delete a spezific Message" << endl;
-    cout << "5. Quit" << endl;
+  printf("What do you want to do?\n");
+  printf("Select via typing the spezific number\n");
+  printf("1. Send message\n");
+  printf("2. List of all Messages you received\n");
+  printf("3. Read a spezific Message\n");
+  printf("4. Delete a spezific Message\n");
+  printf("5. Quit\n");
 }

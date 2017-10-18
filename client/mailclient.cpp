@@ -15,7 +15,7 @@
 #include <string.h>
 #include "function.h"
 #define BUF 2048
-//#define PORT 6543
+#define PORT 6543
 
 using namespace std;
 
