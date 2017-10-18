@@ -78,6 +78,7 @@ char test[10];
   do
   {
     print_options();
+    printf("Option > ");
     fgets(test,10,stdin);
     options = atoi(test);
     fflush(stdin); //flushing user input if he overshoots or something

@@ -74,21 +74,21 @@ void c_send(int create_socket)
   char OK[5] = "";
 
   do {
-    printf("Sender(max8)\n");
+    printf("Sender (Max 8 Characters): ");
     fgets(sender, 8, stdin);
     fflush(stdin);
   } while(strlen(sender) > 8);
   strcat(buffer,sender);
 
   do{
-    printf("Receiver(max 8)\n");
+    printf("Receiver (Max 8 Characters): ");
     fgets(receiver, 8, stdin);
     fflush(stdin);
   }while(strlen(receiver) > 8);
   strcat(buffer,receiver);
 
   do{
-    printf("subject(max 80)\n");
+    printf("Subject (Max 80 Characters): ");
     fgets(subject, 80, stdin);
     fflush(stdin);
   }while(strlen(subject) > 80);
@@ -96,7 +96,7 @@ void c_send(int create_socket)
 
   write(create_socket,buffer,strlen(buffer));
 
-  printf("message (ends with newline.newline)\n");
+  printf("Enter a Message (Ends with newline.newline (\\n.\\n)):\n");
   do{
     fgets(message, BUF, stdin);
     write(create_socket,message,strlen(message));
@@ -105,11 +105,11 @@ void c_send(int create_socket)
   read(create_socket, OK,5);
   if(strcmp(OK, "OK"))
   {
-    printf("successfull\n");
+    printf("Sent mail successfully!\n");
   }
   else
   {
-    printf("unsuccessfull\n");
+    printf("An error occurred, please try again later!\n");
   }
 }
 
@@ -131,7 +131,7 @@ void c_list(int create_socket)
   char tosend[20] = "LIST\n";
 
   do{
-    printf("Please enter the username(max 8 zeichen)\n");
+    printf("Please enter a username (Max 8 Characters): ");
     fgets(username, 8, stdin);
     fflush(stdin);
   }while(strlen(username) > 8);
@@ -141,12 +141,12 @@ void c_list(int create_socket)
 
   readline(amount,create_socket,10);
   n = atoi(amount);
-  printf("%d messages\n", n);
+  printf("%d message(s) available\n", n);
 
   for(int i = 0;i < n; i++)
   {
     readline(buffer,create_socket,BUF);
-    printf("%d) %s\n", i+1,buffer);
+    printf(" %d.) %s\n", i+1,buffer);
   }
 }
 
@@ -168,13 +168,13 @@ void c_read(int create_socket)
   char OK[10] = "";
 
   do{
-    printf("Please enter the username(max 8)\n");
+    printf("Please enter a username(Max 8 Characters): ");
     fgets(username, 8, stdin);
     fflush(stdin);
   }while(strlen(username)> 8);
   strcat(tosend,username);
 
-  printf("What message do you want to read\n");
+  printf("Enter the message number you want to read: ");
   fgets(number, 8, stdin);
   fflush(stdin);
   strcat(tosend, number);
@@ -190,7 +190,7 @@ void c_read(int create_socket)
   }
 
 
-  printf("Message: \n");
+  printf("Message:\n");
   while(strcmp(buffer, ".\n") != 0)
   {
     readline(buffer,create_socket,BUF);
@@ -216,13 +216,13 @@ void c_del(int create_socket)
   char tosend[30] = "DEL\n";
 
   do{
-    printf("Please enter the username\n");
+    printf("Please enter a username (Max 8 Characters): ");
     fgets(username, 8, stdin);
     fflush(stdin);
   }while(strlen(username) > 8);
   strcat(tosend,username);
 
-  printf("What message do you want to delete\n");
+  printf("Enter the message number yo want to delete: ");
   fgets(number, 8, stdin);
   fflush(stdin);
   strcat(tosend,number);
@@ -238,11 +238,11 @@ void c_del(int create_socket)
 
   if(strcmp(buffer, "OK\n"))
   {
-    printf("Delete successfull\n");
+    printf("Successfully deleted the message!\n");
   }
   else
   {
-    printf("Delete unsuccessfull\n");
+    printf("An error occurred while deleting the message, please try again later!\n");
   }
 
 }
@@ -258,9 +258,9 @@ void print_options()
 {
   printf("What do you want to do?\n");
   printf("Select via typing the spezific number\n");
-  printf("1. Send message\n");
-  printf("2. List of all Messages you received\n");
-  printf("3. Read a spezific Message\n");
-  printf("4. Delete a spezific Message\n");
-  printf("5. Quit\n");
+  printf(" 1. Send message\n");
+  printf(" 2. List of all Messages you received\n");
+  printf(" 3. Read a spezific Message\n");
+  printf(" 4. Delete a spezific Message\n");
+  printf(" 5. Quit\n");
 }
