@@ -238,7 +238,7 @@ void c_del(int create_socket)
     return;
   }
 
-  if((OK[0] = 'O') && (OK[1] == 'K'))
+  if((buffer[0] = 'O') && (buffer[1] == 'K'))
   {
     printf("Successfully deleted the message!\n");
   }
