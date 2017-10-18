@@ -4,6 +4,7 @@
 
 #include "mailpoolservice.h"
 #include "../net/socket.h"
+#include "../net/stream.h"
 
 
 /**
@@ -42,6 +43,8 @@ private:
 	net::ssocket& socket;
 	mailpoolservice& mps;
 	bool debug;
+
+	void try_send_error(stream& in);
 };
 
 

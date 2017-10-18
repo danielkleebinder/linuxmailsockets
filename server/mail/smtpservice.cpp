@@ -134,7 +134,7 @@ void smtpservice::send() {
 	} catch (std::exception& ex) {
 		// An error occurred
 		std::cout << ex.what() << std::endl;
-		in.swrite("ERR\n");
+		try_send_error(in);
 		return;
 	}
 
@@ -167,8 +167,7 @@ void smtpservice::list() {
 		}
 	} catch(std::exception& ex) {
 		std::cout << ex.what() << std::endl;
-		in.swrite("ERR\n");
-		return;
+		try_send_error(in);
 	}
 }
 
@@ -199,8 +198,7 @@ void smtpservice::read() {
 		in.swrite(ss.str());
 	} catch(std::exception& ex) {
 		std::cout << ex.what() << std::endl;
-		in.swrite("ERR\n");
-		return;
+		try_send_error(in);
 	}
 }
 
@@ -225,7 +223,7 @@ void smtpservice::del() {
 		}
 	} catch(std::exception& ex) {
 		std::cout << ex.what() << std::endl;
-		in.swrite("ERR\n");
+		try_send_error(in);
 	}
 }
 
@@ -236,3 +234,15 @@ void smtpservice::quit() {
 	ss << "Disconnected from the server!\n";
 	socket.get_stream().swrite(ss.str());
 }
+
+
+void smtpservice::try_send_error(stream& in) {
+	// Try to send the error code, but catch the exception which may
+	// occur if the socket has been closed by the client side.
+	try {
+		in.swrite("ERR\n");
+	} catch (std::exception& ex) {
+		std::cout << ex.what() << std::endl;
+	}
+}
+

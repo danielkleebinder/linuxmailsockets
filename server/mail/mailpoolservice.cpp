@@ -100,19 +100,11 @@ bool mailpoolservice::delete_mail(std::string username, unsigned int mail_id) {
 	std::string archdir = concat_dir(basedir, archive_name);
 	std::string udeldir = concat_dir(archdir, username);
 	std::string userdir = concat_dir(basedir, username);
-	std::string lockfil = concat_dir(userdir, LOCK_NAME);
 
 	// Check if user even has an email account with emails
 	if (!fs::exists(userdir) || username == archive_name) {
 		return false;
 	}
-
-	// Try to obtain a file lock on system level
-	filelock fl(lockfil);
-	if (!fl.try_lock(true)) {
-		return false;
-	}
-
 	// Create directory hierarchy
 	if (!fs::exists(udeldir)) {
 		fs::make_dir(archdir);
@@ -129,6 +121,14 @@ bool mailpoolservice::delete_mail(std::string username, unsigned int mail_id) {
 	std::string dirname = files.at(mail_id - 1);
 	std::string maildir = concat_dir(userdir, dirname);
 	std::string deledir = concat_dir(udeldir, dirname);
+	std::string lockfil = concat_dir(maildir, LOCK_NAME);
+
+	// Try to obtain a file lock on system level
+	filelock fl(lockfil);
+	if (!fl.try_lock(true)) {
+		return false;
+	}
+
 	return fs::move_dir(maildir, deledir);
 }
 

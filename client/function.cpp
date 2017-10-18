@@ -168,7 +168,7 @@ void c_read(int create_socket)
   char OK[10] = "";
 
   do{
-    printf("Please enter a username(Max 8 Characters): ");
+    printf("Please enter a username (Max 8 Characters): ");
     fgets(username, 8, stdin);
     fflush(stdin);
   }while(strlen(username)> 8);
@@ -222,7 +222,7 @@ void c_del(int create_socket)
   }while(strlen(username) > 8);
   strcat(tosend,username);
 
-  printf("Enter the message number yo want to delete: ");
+  printf("Enter the message number you want to delete: ");
   fgets(number, 8, stdin);
   fflush(stdin);
   strcat(tosend,number);
