@@ -27,6 +27,7 @@ std::map<std::string, int> smtpservice::login_attempts;
 std::mutex smtpservice::login_attempts_mutex;
 
 
+// SMTP Service constructor
 smtpservice::smtpservice(net::ssocket& socket, mailpoolservice& mps)
 	: socket(socket), mps(mps), debug(false) {}
 
@@ -67,7 +68,7 @@ void smtpservice::run_protocol(net::ssocket& con_sock) {
 	do {
 		// Read line by line using new streaming and socket API.
 		// Rethrow any uncaught exceptions into the main procedure.
-		line = socket_stream.sreadline();
+		line = socket_stream.readline();
 	
 		// Output debug
 		if (debug) {
@@ -87,8 +88,10 @@ void smtpservice::run_protocol(net::ssocket& con_sock) {
 			raiilock lck(smtpservice::login_attempts_mutex);
 			if (!login_success) {
 				smtpservice::login_attempts[usr.get_username()]++;
+				try_send_error(socket_stream);
 			} else {
 				smtpservice::login_attempts[usr.get_username()] = 0;
+				try_send_ok(socket_stream);
 			}
 		}
 
@@ -136,8 +139,8 @@ bool smtpservice::login() {
 		if (usr.is_logged_in()) {
 		}
 
-		usr.set_username(in.sreadline());
-		usr.set_password(in.sreadline());
+		usr.set_username(in.readline());
+		usr.set_password(in.readline());
 
 		if (debug) {
 			std::cout << "(DM) LOGIN Protocol: " << usr.get_username() << std::endl;
@@ -147,14 +150,6 @@ bool smtpservice::login() {
 
 		// TODO: Run LDAP login procedure here
 		usr.set_logged_in(usr.is_fhtw_user());
-
-		// Send "OK" if successfully logged in
-		// Send "ERR" if the user failed to log in
-		if (usr.is_logged_in()) {
-			in.swrite("OK\n");
-		} else {
-			try_send_error(in);
-		}
 	} catch (std::exception& ex) {
 		// An error occurred
 		std::cout << ex.what() << std::endl;
@@ -171,8 +166,8 @@ void smtpservice::send() {
 	email mail;
 	try {
 		mail.set_sender(usr.get_username());
-		mail.set_receiver(in.sreadline());
-		mail.set_subject(in.sreadline());
+		mail.set_receiver(in.readline());
+		mail.set_subject(in.readline());
 
 		if (debug) {
 			std::cout << "(DM) SEND Protocol: " << mail.get_sender() << std::endl;
@@ -185,7 +180,7 @@ void smtpservice::send() {
 		std::string msg_ending = "\n.\n";
 		std::string final_msg;
 		while (true) {
-			message << in.sreadline();
+			message << in.readline();
 			message << '\n';
 			final_msg = message.str();
 
@@ -209,7 +204,7 @@ void smtpservice::send() {
 	}
 
 	// Everything is fine
-	in.swrite("OK\n");
+	try_send_ok(in);
 }
 
 
@@ -227,13 +222,13 @@ void smtpservice::list() {
 		// List total amount of messages
 		std::stringstream ss;
 		ss << mails.size() << '\n';
-		in.swrite(ss.str());
+		in.writeline(ss.str());
 
 		// List all messages with numbers
 		for (email current : mails) {
 			ss.str(std::string());
 			ss << current.get_subject() << '\n';
-			in.swrite(ss.str());
+			in.writeline(ss.str());
 		}
 	} catch(std::exception& ex) {
 		std::cout << ex.what() << std::endl;
@@ -247,7 +242,7 @@ void smtpservice::read() {
 
 	try {
 		std::string username = usr.get_username();
-		int msg_num = atoi(in.sreadline().c_str());
+		int msg_num = atoi(in.readline().c_str());
 
 		if (debug) {
 			std::cout << "(DM) READ Protocol: " << username << std::endl;
@@ -258,14 +253,14 @@ void smtpservice::read() {
 		email mail = mps.load_mail(username, msg_num);
 
 		// Nothing has thrown an exception, everything is fine so far
-		in.swrite("OK\n");
+		try_send_ok(in);
 
 		// Send E-Mail message
 		std::stringstream ss;
 		ss.str(std::string());
 		ss << mail.get_message();
 		ss << std::endl;
-		in.swrite(ss.str());
+		in.writeline(ss.str());
 	} catch(std::exception& ex) {
 		std::cout << ex.what() << std::endl;
 		try_send_error(in);
@@ -278,7 +273,7 @@ void smtpservice::del() {
 
 	try {
 		std::string username = usr.get_username();
-		int msg_num = atoi(in.sreadline().c_str());
+		int msg_num = atoi(in.readline().c_str());
 
 		if (debug) {
 			std::cout << "(DM) DEL Protocol: " << username << std::endl;
@@ -287,9 +282,9 @@ void smtpservice::del() {
 
 		// Delete mail
 		if (mps.delete_mail(username, msg_num)) {
-			in.swrite("OK\n");
+			try_send_ok(in);
 		} else {
-			in.swrite("ERR\n");
+			try_send_error(in);
 		}
 	} catch(std::exception& ex) {
 		std::cout << ex.what() << std::endl;
@@ -299,11 +294,12 @@ void smtpservice::del() {
 
 
 void smtpservice::quit() {
-	std::cout << "User \"" << usr.get_username() << "\" quits the mail server!" << std::endl;
+	std::string username = usr.get_username().empty() ? "ANONYMOUS" : usr.get_username();
+	std::cout << "User \"" << username << "\" quits the mail server!" << std::endl;
 	std::stringstream ss;
 	ss << "Disconnected from the server!\n";
 	try {
-		socket.get_stream().swrite(ss.str());
+		socket.get_stream().writeline(ss.str());
 	} catch (std::exception& ex) {
 		if (debug) {
 			std::cout << "(DM) Socket already closed: " << ex.what() << std::endl;
@@ -312,11 +308,22 @@ void smtpservice::quit() {
 }
 
 
+void smtpservice::try_send_ok(stream& in) {
+	// Try to send the success code, but catch the exception which may
+	// occur if the socket has been closed by the client side.
+	try {
+		in.writeline("OK\n");
+	} catch (std::exception& ex) {
+		std::cout << ex.what() << std::endl;
+	}
+}
+
+
 void smtpservice::try_send_error(stream& in) {
 	// Try to send the error code, but catch the exception which may
 	// occur if the socket has been closed by the client side.
 	try {
-		in.swrite("ERR\n");
+		in.writeline("ERR\n");
 	} catch (std::exception& ex) {
 		std::cout << ex.what() << std::endl;
 	}

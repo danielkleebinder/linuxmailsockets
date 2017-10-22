@@ -56,7 +56,8 @@ private:
 	user usr;
 	bool debug;
 
-	// Private send error method
+	// Private send ok and send error methods
+	void try_send_ok(stream& in);
 	void try_send_error(stream& in);
 };
 

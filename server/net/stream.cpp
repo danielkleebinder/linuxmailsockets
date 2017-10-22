@@ -16,6 +16,8 @@
 #include <string>
 #include <stdexcept>
 #include <unistd.h>
+#include <sstream>
+#include <cstdint>
 
 
 
@@ -30,18 +32,13 @@ void stream::close_stream() {
 }
 
 
-char stream::sread() {
-	char ch;
-	int n = read(_handler, &ch, 1);
-	if (n == -1) {
-		throw std::runtime_error("Error while reading a character from the stream");
-	}
-	return ch;
+char stream::readchar() {
+	return (char) readbyte();
 }
 
 
-std::string stream::sreadline() {
-	std::string result;
+std::string stream::readline() {
+	std::stringstream result;
 	char ch;
 	int n = 0;
 
@@ -63,23 +60,20 @@ std::string stream::sreadline() {
 		}
 
 		// Concat character
-		result += ch;
+		result << ch;
 	}
 
 	// Return the string result
-	return result;	
+	return result.str();	
 }
 
 
-void stream::swrite(char ch) {
-	int n = write(_handler, &ch, 1);
-	if (n < 1) {
-		throw std::runtime_error("Error while writing a character to the stream");
-	}
+void stream::writechar(char ch) {
+	writebyte((uint8_t) ch);
 }
 
 
-void stream::swrite(std::string str) {
+void stream::writeline(std::string str) {
 	int size = str.length();
 	int n = write(_handler, str.c_str(), size);
 	if (n < size) {
@@ -87,3 +81,36 @@ void stream::swrite(std::string str) {
 	}
 }
 
+
+uint8_t stream::readbyte() {
+	uint8_t result;
+	readbytes(&result, 1);
+	return result;
+}
+
+
+void stream::readbytes(uint8_t* bytes, int n) {
+	ssize_t c = read(_handler, &bytes, n);
+	if (c < 1) {
+		throw std::runtime_error("Error while reading bytes from the stream");
+	}
+}
+
+
+void stream::writebyte(uint8_t b) {
+	writebytes(&b, 1);
+}
+
+
+void stream::writebytes(uint8_t* bytes, int n) {
+	writebytes(bytes, 0, n);
+}
+
+
+void stream::writebytes(uint8_t* bytes, int offset, int size) {
+	// uint8_t is exactly one byte, no need for sizeof operator
+	ssize_t n = write(_handler, bytes + offset, size);
+	if (n < size) {
+		throw std::runtime_error("Error while writing bytes to the stream");
+	}
+}
