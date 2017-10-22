@@ -161,7 +161,7 @@ void smtpservice::send(user& usr) {
 	// Create E-Mail
 	email mail;
 	try {
-		mail.set_sender(in.sreadline());
+		mail.set_sender(usr.get_username());
 		mail.set_receiver(in.sreadline());
 		mail.set_subject(in.sreadline());
 
@@ -208,7 +208,7 @@ void smtpservice::list(user& usr) {
 	stream in = socket.get_stream();
 
 	try {
-		std::string username = in.sreadline();
+		std::string username = usr.get_username();
 		std::vector<email> mails = mps.load_user_mails(username);
 
 		if (debug) {
@@ -237,7 +237,7 @@ void smtpservice::read(user& usr) {
 	stream in = socket.get_stream();
 
 	try {
-		std::string username = in.sreadline();
+		std::string username = usr.get_username();
 		int msg_num = atoi(in.sreadline().c_str());
 
 		if (debug) {
@@ -268,7 +268,7 @@ void smtpservice::del(user& usr) {
 	stream in = socket.get_stream();
 
 	try {
-		std::string username = in.sreadline();
+		std::string username = usr.get_username();
 		int msg_num = atoi(in.sreadline().c_str());
 
 		if (debug) {
@@ -290,7 +290,7 @@ void smtpservice::del(user& usr) {
 
 
 void smtpservice::quit(user& usr) {
-	std::cout << "User quits the mail server!" << std::endl;
+	std::cout << "User \"" << usr.get_username() << "\" quits the mail server!" << std::endl;
 	std::stringstream ss;
 	ss << "Disconnected from the server!\n";
 	try {
