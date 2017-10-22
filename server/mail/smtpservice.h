@@ -5,6 +5,7 @@
 #include "mailpoolservice.h"
 #include "../net/socket.h"
 #include "../net/stream.h"
+#include "../user.h"
 
 
 /**
@@ -30,14 +31,16 @@ public:
 protected:
 	// Standard SMTP functions are virtual for newer
 	// protocols to override and reimplement them.
-	virtual void send();
-	virtual void list();
-	virtual void read();
-	virtual void del();
-	virtual void quit();
+	virtual user login();
+	virtual void send(user& usr);
+	virtual void list(user& usr);
+	virtual void read(user& usr);
+	virtual void del(user& usr);
+	virtual void quit(user& usr);
 
 	// Run the whole SMTP protocol
 	void run_protocol(net::ssocket& con_sock);
+	void run_smtp_protocols(user& usr, std::string line);
 
 private:
 	net::ssocket& socket;

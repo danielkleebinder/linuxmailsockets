@@ -6,6 +6,7 @@
  */
 
 
+#include "../user.h"
 #include "../net/socket.h"
 #include "smtpservice.h"
 #include "mailpoolservice.h"
@@ -54,47 +55,107 @@ bool smtpservice::get_debug_mode() {
 void smtpservice::run_protocol(net::ssocket& con_sock) {
 	stream socket_stream = con_sock.get_stream();
 	std::string line;
+
+	int failed_login_attempts = 0;
+	user current_user;
 	do {
 		// Read line by line using new streaming and socket API.
 		// Rethrow any uncaught exceptions into the main procedure.
 		line = socket_stream.sreadline();
+	
+		// Output debug
+		if (debug) {
+			std::cout << "(DM) Read line: " << line << std::endl;
+		}
 
 		// Check if line is null or empty
 		if (line.empty()) {
 			continue;
 		}
 
+		// Login user before any other protocol can be executed
+		if (line == "LOGIN") {
+			current_user = login();
+			if (!current_user.is_logged_in()) {
+				failed_login_attempts++;
+			} else {
+				failed_login_attempts = 0;
+			}
+		}
+
+		// Check if user is authenticated
+		if (!current_user.is_logged_in()) {
+			continue;
+		}
+
 		// Start correct mail protocol
-		if (line == "SEND") {
-			send();
-		}
-
-		if (line == "LIST") {
-			list();
-		}
-
-		if (line == "READ") {
-			read();
-		}
-
-		if (line == "DEL") {
-			del();
-		}
-
-		// Output debug
-		if (debug) {
-			std::cout << "(DM) Read line: " << line << std::endl;
-		}
+		run_smtp_protocols(current_user, line);
 	} while (line != "quit");
 
 	// Closing the socket
-	quit();
+	quit(current_user);
 	std::cout << "Closing socket ID-" << con_sock.get_handler_id() << std::endl;
 	con_sock.close_socket();
 }
 
 
-void smtpservice::send() {
+void smtpservice::run_smtp_protocols(user& usr, std::string line) {
+	if (line == "SEND") {
+		send(usr);
+	}
+
+	if (line == "LIST") {
+		list(usr);
+	}
+
+	if (line == "READ") {
+		read(usr);
+	}
+
+	if (line == "DEL") {
+		del(usr);
+	}
+}
+
+
+user smtpservice::login() {
+	stream in = socket.get_stream();
+
+	// Create user and try logging in
+	user usr;
+	try {
+		usr.set_username(in.sreadline());
+		usr.set_password(in.sreadline());
+
+		if (debug) {
+			std::cout << "(DM) LOGIN Protocol: " << usr.get_username() << std::endl;
+			std::cout << "(DM) LOGIN Protocol: PW: *****" << std::endl;
+			std::cout << "(DM) LOGIN Protocol: " << usr.is_fhtw_user() << std::endl;
+		}
+
+		// TODO: Run LDAP login procedure here
+		usr.set_logged_in(usr.is_fhtw_user());
+
+		// Send "OK" if successfully logged in
+		// Send "ERR" if the user failed to log in
+		if (usr.is_logged_in()) {
+			in.swrite("OK\n");
+		} else {
+			try_send_error(in);
+		}
+
+		return usr;
+	} catch (std::exception& ex) {
+		// An error occurred
+		std::cout << ex.what() << std::endl;
+		try_send_error(in);
+	}
+
+	return usr;
+}
+
+
+void smtpservice::send(user& usr) {
 	stream in = socket.get_stream();
 
 	// Create E-Mail
@@ -143,7 +204,7 @@ void smtpservice::send() {
 }
 
 
-void smtpservice::list() {
+void smtpservice::list(user& usr) {
 	stream in = socket.get_stream();
 
 	try {
@@ -172,7 +233,7 @@ void smtpservice::list() {
 }
 
 
-void smtpservice::read() {
+void smtpservice::read(user& usr) {
 	stream in = socket.get_stream();
 
 	try {
@@ -203,7 +264,7 @@ void smtpservice::read() {
 }
 
 
-void smtpservice::del() {
+void smtpservice::del(user& usr) {
 	stream in = socket.get_stream();
 
 	try {
@@ -228,7 +289,7 @@ void smtpservice::del() {
 }
 
 
-void smtpservice::quit() {
+void smtpservice::quit(user& usr) {
 	std::cout << "User quits the mail server!" << std::endl;
 	std::stringstream ss;
 	ss << "Disconnected from the server!\n";
