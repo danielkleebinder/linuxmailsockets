@@ -7,6 +7,9 @@
 #include "../net/stream.h"
 #include "../user.h"
 
+#include <mutex>
+#include <map>
+
 
 /**
  * AUTHOR: KLEEBINDER Daniel
@@ -31,22 +34,29 @@ public:
 protected:
 	// Standard SMTP functions are virtual for newer
 	// protocols to override and reimplement them.
-	virtual user login();
-	virtual void send(user& usr);
-	virtual void list(user& usr);
-	virtual void read(user& usr);
-	virtual void del(user& usr);
-	virtual void quit(user& usr);
+	virtual bool login();
+	virtual void send();
+	virtual void list();
+	virtual void read();
+	virtual void del();
+	virtual void quit();
 
 	// Run the whole SMTP protocol
 	void run_protocol(net::ssocket& con_sock);
-	void run_smtp_protocols(user& usr, std::string line);
+	void run_smtp_protocols(std::string line);
 
 private:
+	// Map and mutex for login attempts counter
+	static std::map<std::string, int> login_attempts;
+	static std::mutex login_attempts_mutex;
+
+	// Class variables
 	net::ssocket& socket;
 	mailpoolservice& mps;
+	user usr;
 	bool debug;
 
+	// Private send error method
 	void try_send_error(stream& in);
 };
 

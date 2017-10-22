@@ -7,6 +7,7 @@
 
 
 #include "../user.h"
+#include "../raiilock.h"
 #include "../net/socket.h"
 #include "smtpservice.h"
 #include "mailpoolservice.h"
@@ -17,6 +18,13 @@
 #include <stdexcept>
 #include <vector>
 #include <sstream>
+#include <mutex>
+#include <map>
+
+
+// Initialize static variables
+std::map<std::string, int> smtpservice::login_attempts;
+std::mutex smtpservice::login_attempts_mutex;
 
 
 smtpservice::smtpservice(net::ssocket& socket, mailpoolservice& mps)
@@ -56,8 +64,6 @@ void smtpservice::run_protocol(net::ssocket& con_sock) {
 	stream socket_stream = con_sock.get_stream();
 	std::string line;
 
-	int failed_login_attempts = 0;
-	user current_user;
 	do {
 		// Read line by line using new streaming and socket API.
 		// Rethrow any uncaught exceptions into the main procedure.
@@ -75,55 +81,61 @@ void smtpservice::run_protocol(net::ssocket& con_sock) {
 
 		// Login user before any other protocol can be executed
 		if (line == "LOGIN") {
-			current_user = login();
-			if (!current_user.is_logged_in()) {
-				failed_login_attempts++;
+			bool login_success = login();
+
+			// Set mutex and update failed/success login counter
+			raiilock lck(smtpservice::login_attempts_mutex);
+			if (!login_success) {
+				smtpservice::login_attempts[usr.get_username()]++;
 			} else {
-				failed_login_attempts = 0;
+				smtpservice::login_attempts[usr.get_username()] = 0;
 			}
 		}
 
 		// Check if user is authenticated
-		if (!current_user.is_logged_in()) {
+		if (!usr.is_logged_in()) {
 			continue;
 		}
 
 		// Start correct mail protocol
-		run_smtp_protocols(current_user, line);
+		run_smtp_protocols(line);
 	} while (line != "quit");
 
 	// Closing the socket
-	quit(current_user);
+	quit();
 	std::cout << "Closing socket ID-" << con_sock.get_handler_id() << std::endl;
 	con_sock.close_socket();
 }
 
 
-void smtpservice::run_smtp_protocols(user& usr, std::string line) {
+void smtpservice::run_smtp_protocols(std::string line) {
 	if (line == "SEND") {
-		send(usr);
+		send();
 	}
 
 	if (line == "LIST") {
-		list(usr);
+		list();
 	}
 
 	if (line == "READ") {
-		read(usr);
+		read();
 	}
 
 	if (line == "DEL") {
-		del(usr);
+		del();
 	}
 }
 
 
-user smtpservice::login() {
+bool smtpservice::login() {
 	stream in = socket.get_stream();
 
-	// Create user and try logging in
-	user usr;
+	// Update user and try logging in
 	try {
+		// TODO: If user is logged in, log out
+		if (usr.is_logged_in()) {
+		}
+
 		usr.set_username(in.sreadline());
 		usr.set_password(in.sreadline());
 
@@ -143,19 +155,16 @@ user smtpservice::login() {
 		} else {
 			try_send_error(in);
 		}
-
-		return usr;
 	} catch (std::exception& ex) {
 		// An error occurred
 		std::cout << ex.what() << std::endl;
 		try_send_error(in);
 	}
-
-	return usr;
+	return usr.is_logged_in();
 }
 
 
-void smtpservice::send(user& usr) {
+void smtpservice::send() {
 	stream in = socket.get_stream();
 
 	// Create E-Mail
@@ -204,7 +213,7 @@ void smtpservice::send(user& usr) {
 }
 
 
-void smtpservice::list(user& usr) {
+void smtpservice::list() {
 	stream in = socket.get_stream();
 
 	try {
@@ -233,7 +242,7 @@ void smtpservice::list(user& usr) {
 }
 
 
-void smtpservice::read(user& usr) {
+void smtpservice::read() {
 	stream in = socket.get_stream();
 
 	try {
@@ -264,7 +273,7 @@ void smtpservice::read(user& usr) {
 }
 
 
-void smtpservice::del(user& usr) {
+void smtpservice::del() {
 	stream in = socket.get_stream();
 
 	try {
@@ -289,7 +298,7 @@ void smtpservice::del(user& usr) {
 }
 
 
-void smtpservice::quit(user& usr) {
+void smtpservice::quit() {
 	std::cout << "User \"" << usr.get_username() << "\" quits the mail server!" << std::endl;
 	std::stringstream ss;
 	ss << "Disconnected from the server!\n";
