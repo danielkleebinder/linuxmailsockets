@@ -28,8 +28,8 @@ std::mutex smtpservice::login_attempts_mutex;
 
 
 // SMTP Service constructor
-smtpservice::smtpservice(net::ssocket& socket, mailpoolservice& mps)
-	: socket(socket), mps(mps), debug(false) {}
+smtpservice::smtpservice(net::ssocket& socket, mailpoolservice& mps, loginsystem& ls)
+	: socket(socket), mps(mps), login_system(ls), debug(false) {}
 
 smtpservice::~smtpservice() {}
 
@@ -127,6 +127,10 @@ void smtpservice::run_smtp_protocols(std::string line) {
 	if (line == "DEL") {
 		del();
 	}
+
+	if (line == "LOGOUT") {
+		logout();
+	}
 }
 
 
@@ -137,6 +141,7 @@ bool smtpservice::login() {
 	try {
 		// TODO: If user is logged in, log out
 		if (usr.is_logged_in()) {
+			login_system.logout(usr);
 		}
 
 		usr.set_username(in.readline());
@@ -149,13 +154,31 @@ bool smtpservice::login() {
 		}
 
 		// TODO: Run LDAP login procedure here
-		usr.set_logged_in(usr.is_fhtw_user());
+		login_system.login(usr);
 	} catch (std::exception& ex) {
 		// An error occurred
 		std::cout << ex.what() << std::endl;
 		try_send_error(in);
 	}
 	return usr.is_logged_in();
+}
+
+
+void smtpservice::logout() {
+	stream in = socket.get_stream();
+
+	// Try to log the user out
+	try {
+		if (!login_system.logout(usr)) {
+			std::cout << "(DM) LOGOUT Protocol: Not able to logout" << std::endl;
+		}
+	} catch (std::exception& ex) {
+		// An error occurred
+		std::cout << ex.what() << std::endl;
+		try_send_error(in);
+		return;
+	}
+	try_send_ok(in);
 }
 
 

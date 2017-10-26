@@ -6,6 +6,7 @@
 #include "../net/socket.h"
 #include "../net/stream.h"
 #include "../user.h"
+#include "../login/loginsystem.h"
 
 #include <mutex>
 #include <map>
@@ -19,7 +20,7 @@
  */
 class smtpservice {
 public:
-	smtpservice(net::ssocket& socket, mailpoolservice& mps);
+	smtpservice(net::ssocket& socket, mailpoolservice& mps, loginsystem& ls);
 	~smtpservice();
 
 	// Starts the SMTP protocol in an own thread
@@ -35,6 +36,7 @@ protected:
 	// Standard SMTP functions are virtual for newer
 	// protocols to override and reimplement them.
 	virtual bool login();
+	virtual void logout();
 	virtual void send();
 	virtual void list();
 	virtual void read();
@@ -53,6 +55,8 @@ private:
 	// Class variables
 	net::ssocket& socket;
 	mailpoolservice& mps;
+	loginsystem& login_system;
+
 	user usr;
 	bool debug;
 

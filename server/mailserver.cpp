@@ -11,6 +11,7 @@
 // Include C++/11 Headers
 #include <string>
 #include <iostream>
+#include <memory>
 
 // Include C system libaries
 #include <sys/types.h>
@@ -25,6 +26,10 @@
 #include <time.h>
 
 // Include custom classes
+#include "login/loginsystem.h"
+#include "login/virtuallogin.h"
+#include "login/ldaplogin.h"
+
 #include "net/stream.h"
 #include "net/socket.h"
 #include "net/serversocket.h"
@@ -133,6 +138,7 @@ int main(int argc, char** argv) {
 	// and try to start the server
 	try {
 		mailpoolservice mps(directory);
+		unique_ptr<loginsystem> lsptr(new virtuallogin());
 		cout << "Debug Mode: " << (debug ? "On" : "Off") << endl;
 		cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
 
@@ -143,13 +149,14 @@ int main(int argc, char** argv) {
 			net::ssocket connection = ss->accept_connection();
 
 			// Start smtp mail service and run in own thread
-			smtpservice smtps = smtpservice(connection, mps);
+			smtpservice smtps = smtpservice(connection, mps, *lsptr.get());
 			smtps.set_debug_mode(debug);
 			smtps.start_forked_service();
 		}
 	} catch(exception& ex) {
 		cout << ex.what() << endl;
 		help(program_name);
+		delete ss;
 		exit(4);
 	}
 
