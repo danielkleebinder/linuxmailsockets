@@ -73,7 +73,19 @@ int main (int argc, char **argv) {
      perror("Connect error - no server available");
      return EXIT_FAILURE;
   }
+  LOGIN:while(c_login(create_socket) == 0)
+  {
+    char input[10];
+    printf("do you want to quit? y/n\n" );
+    fgets(input,10,stdin);
+    fflush(stdin);
 
+    if(input[0] == 'y')
+    {
+      c_quit(create_socket);
+      return EXIT_SUCCESS;
+    }
+  }
 char test[10];
   do
   {
@@ -90,6 +102,7 @@ char test[10];
     //the problem was that scanf leaves a newline in the buffer and the next
     //fgets reads the newline
 
+
     switch (options) {
       case 1: c_send(create_socket);
               break;
@@ -99,7 +112,12 @@ char test[10];
               break;
       case 4: c_del(create_socket);
               break;
-      case 5: c_quit(create_socket);
+      case 5: c_logout(create_socket);
+              //goto LOGIN;
+              quit = true;
+              close(create_socket);
+              break;
+      case 6: c_quit(create_socket);
               quit = true;
               close(create_socket);
               break;

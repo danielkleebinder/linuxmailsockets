@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "function.h"
+#include <termios.h>
+
 #define BUF 2048
 #define PORT 6543
 
@@ -57,6 +59,71 @@ void readline(char* buffer,int create_socket,int max)
 }
 
 
+int c_login(int create_socket)
+{
+  char username[20];
+  char password[BUF];
+  char response[5];
+  int trys = 1;
+  static struct termios oldt, newt;
+
+  /*saving the old settings of STDIN_FILENO and copy settings for resetting*/
+  tcgetattr( STDIN_FILENO, &oldt);
+  newt = oldt;
+
+  /*setting the approriate bit in the termios struct*/
+  newt.c_lflag &= ~(ECHO);
+
+
+  do {
+    char buffer[BUF] = "LOGIN\n";
+    do {
+      printf("What is your Username\n");
+      fgets(username, 20, stdin);
+      fflush(stdin);
+    } while(strlen(username)> 9);
+
+    /*setting the new bits*/
+    tcsetattr( STDIN_FILENO, TCSANOW, &newt);
+
+      do {
+        printf("What is your password\n");
+        fgets(password, BUF, stdin);
+        fflush(stdin);
+      } while(!(strlen(password) > 0));
+
+      /*resetting our old STDIN_FILENO*/
+      tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
+
+      strcat(buffer,username);
+      strcat(buffer,password);
+
+      write(create_socket,buffer,strlen(buffer));
+
+      read(create_socket, response,5);
+      printf("response: %s\n", response);
+      trys++;
+      if(!((response[0] = 'O') && (response[1] == 'K')))
+      {
+        printf("An error accured plz try again\n");
+      }
+
+      if(trys > 3)
+      {
+        printf("Maximum numbers of trys, plz try again later\n");
+        return 0;
+      }
+  } while(!((response[0] = 'O') && (response[1] == 'K')) && trys < 4);
+  return 1;
+}
+
+void c_logout(int create_socket)
+{
+  send(create_socket, "LOGOUT\n", 7, 0);
+  //c_quit(create_socket);
+}
+
+
 /*
 function c_send
 sends the message to the server
@@ -66,25 +133,17 @@ server returns ok if successfull
 */
 void c_send(int create_socket)
 {
-  char sender[BUF] = "";
   char receiver[BUF] = "";
   char subject[BUF] = "";
   char message[BUF] = "";
   char buffer[BUF] = "SEND\n";
   char OK[5] = "";
 
-  do {
-    printf("Sender (Max 8 Characters): ");
-    fgets(sender, BUF, stdin);
-    fflush(stdin);
-  } while(strlen(sender) > 8);
-  strcat(buffer,sender);
-
   do{
     printf("Receiver (Max 8 Characters): ");
     fgets(receiver, BUF, stdin);
     fflush(stdin);
-  }while(strlen(receiver) > 8);
+  }while(strlen(receiver) > 9);
   strcat(buffer,receiver);
 
   do{
@@ -127,17 +186,9 @@ void c_list(int create_socket)
   //int size;
   int n = 0;
   char amount[10] = "";
-  char username[BUF] = "";
   char buffer[BUF] = "";
   char tosend[BUF] = "LIST\n";
 
-  do{
-    printf("Please enter a username (Max 8 Characters): ");
-    fgets(username, BUF, stdin);
-    fflush(stdin);
-  }while(strlen(username) > 8);
-
-  strcat(tosend,username);
   send(create_socket, tosend, strlen(tosend),0);
 
   readline(amount,create_socket,10);
@@ -163,18 +214,10 @@ server sends ok if the message is there and the message as one big string
 void c_read(int create_socket)
 {
   //int size;
-  char username[BUF]= "";
   char number[BUF] = "";
   char buffer[BUF] = "";
   char tosend[BUF] = "READ\n";
   char OK[10] = "";
-
-  do{
-    printf("Please enter a username (Max 8 Characters): ");
-    fgets(username, BUF, stdin);
-    fflush(stdin);
-  }while(strlen(username)> 8);
-  strcat(tosend,username);
 
   printf("Enter the message number you want to read: ");
   fgets(number, 8, stdin);
@@ -212,17 +255,9 @@ server sends ok if the message was deleted
 void c_del(int create_socket)
 {
   int size;
-  char username[BUF];
   char number[BUF];
   char buffer[BUF];
   char tosend[30] = "DEL\n";
-
-  do{
-    printf("Please enter a username (Max 8 Characters): ");
-    fgets(username, BUF, stdin);
-    fflush(stdin);
-  }while(strlen(username) > 8);
-  strcat(tosend,username);
 
   printf("Enter the message number you want to delete: ");
   fgets(number, BUF, stdin);
@@ -264,5 +299,6 @@ void print_options()
   printf(" 2. List of all Messages you received\n");
   printf(" 3. Read a spezific Message\n");
   printf(" 4. Delete a spezific Message\n");
-  printf(" 5. Quit\n");
+  printf(" 5. Logout\n");
+  printf(" 6. Quit\n");
 }
