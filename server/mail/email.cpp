@@ -7,9 +7,12 @@
 
 
 #include "email.h"
+#include "attachment.h"
 
 #include <string>
 #include <stdexcept>
+#include <vector>
+
 
 email::email() {}
 
@@ -91,4 +94,14 @@ void email::set_message(std::string message) {
 
 std::string email::get_message() {
 	return message;
+}
+
+
+/**
+ * Returns all attachments as vector.
+ *
+ * @return Attachments vector.
+ */
+std::vector<attachment>& email::get_attachments() {
+	return attachments;
 }

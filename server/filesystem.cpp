@@ -122,6 +122,25 @@ namespace fs {
 
 
 	/**
+	 * Writes the given byte array into the given file.
+	 *
+	 * @param file File to write bytes to.
+	 * @param bytes Bytes to be written.
+	 * @return True if the byte array was successfully written.
+	 */
+	bool file_write_bytes(std::string file, uint8_t* bytes) {
+		{
+			raiilock s1(_mutex);
+			std::ofstream out;
+			out.open(file, std::ofstream::out);
+			out.write((char*) bytes, sizeof(bytes));
+			out.close();
+		}
+		return true;
+	}
+
+
+	/**
 	 * Lists all files and directories in the given directory.
 	 *
 	 * @param dir Directory.

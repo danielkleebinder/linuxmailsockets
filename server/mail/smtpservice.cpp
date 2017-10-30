@@ -28,7 +28,7 @@ std::mutex smtpservice::login_attempts_mutex;
 
 
 // SMTP Service constructor
-smtpservice::smtpservice(net::ssocket& socket, mailpoolservice& mps, loginsystem& ls)
+smtpservice::smtpservice(net::csocket& socket, mailpoolservice& mps, loginsystem& ls)
 	: socket(socket), mps(mps), login_system(ls), debug(false) {}
 
 smtpservice::~smtpservice() {}
@@ -61,7 +61,7 @@ bool smtpservice::get_debug_mode() {
  *
  * @param con_sock Connected client socket.
  */
-void smtpservice::run_protocol(net::ssocket& con_sock) {
+void smtpservice::run_protocol(net::csocket& con_sock) {
 	stream socket_stream = con_sock.get_stream();
 	std::string line;
 
@@ -107,7 +107,7 @@ void smtpservice::run_protocol(net::ssocket& con_sock) {
 	// Closing the socket
 	quit();
 	std::cout << "Closing socket ID-" << con_sock.get_handler_id() << std::endl;
-	con_sock.close_socket();
+	con_sock.close();
 }
 
 
@@ -319,10 +319,8 @@ void smtpservice::del() {
 void smtpservice::quit() {
 	std::string username = usr.get_username().empty() ? "ANONYMOUS" : usr.get_username();
 	std::cout << "User \"" << username << "\" quits the mail server!" << std::endl;
-	std::stringstream ss;
-	ss << "Disconnected from the server!\n";
 	try {
-		socket.get_stream().writeline(ss.str());
+		socket.get_stream().writeline("Disconnected from the server!\n");
 	} catch (std::exception& ex) {
 		if (debug) {
 			std::cout << "(DM) Socket already closed: " << ex.what() << std::endl;

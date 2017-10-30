@@ -21,16 +21,54 @@
 
 
 
-net::ssocket::ssocket(int handler)
+net::csocket::csocket(int handler)
 	: socket_handler(handler) {
 	_stream = new stream(handler);
 }
 
-net::ssocket::ssocket(std::string host, int port)
-	: _host(host), _port(port) {
+net::csocket::csocket(std::string host, int port)
+	: _host(host), _port(port) {}
 
+
+net::csocket::~csocket() {
+	delete _stream;
+}
+
+
+void net::csocket::set_host(std::string host) {
+	if (socket_handler < 0) {
+		throw std::runtime_error("Socket is already bound");
+	}
+	_host = host;
+}
+
+
+std::string net::csocket::get_host() {
+	return _host;
+}
+
+
+void net::csocket::set_port(int port) {
+	if (socket_handler < 0) {
+		throw std::runtime_error("Socket is already bound");
+	}
+	_port = port;
+}
+
+
+int net::csocket::get_port() {
+	return _port;
+}
+
+
+int net::csocket::get_handler_id() {
+	return socket_handler;
+}
+
+
+void net::csocket::bind() {
 	// Create socket
-	socket_handler = socket(AF_INET, SOCK_STREAM, 0);
+	socket_handler = ::socket(AF_INET, SOCK_STREAM, 0);
 	if (socket_handler == -1) {
 		throw std::runtime_error("Could not create socket");
 	}
@@ -39,8 +77,8 @@ net::ssocket::ssocket(std::string host, int port)
 	struct sockaddr_in address;
 	memset(&address, 0, sizeof(address));
 	address.sin_family = AF_INET;
-	address.sin_port = htons(port);
-	inet_aton(host.c_str(), &address.sin_addr);
+	address.sin_port = htons(_port);
+	inet_aton(_host.c_str(), &address.sin_addr);
 
 	// Try to connect to the specified host
 	if (connect(socket_handler, (struct sockaddr*) &address, sizeof(address)) != 0) {
@@ -49,36 +87,20 @@ net::ssocket::ssocket(std::string host, int port)
 
 	// Create stream
 	_stream = new stream(socket_handler);
+
 }
 
 
-net::ssocket::~ssocket() {
-	delete _stream;
-}
-
-
-std::string net::ssocket::get_host() {
-	return _host;
-}
-
-
-int net::ssocket::get_port() {
-	return _port;
-}
-
-
-int net::ssocket::get_handler_id() {
-	return socket_handler;
-}
-
-
-void net::ssocket::close_socket() {
-	close(socket_handler);
+void net::csocket::close() {
+	::close(socket_handler);
 	socket_handler = -1;
 }
 
 
-stream& net::ssocket::get_stream() {
+stream& net::csocket::get_stream() {
+	if (socket_handler < 0) {
+		throw std::runtime_error("Unbound socket, no stream available yet");
+	}
 	return *_stream;
 }
 

@@ -20,7 +20,7 @@
  */
 class smtpservice {
 public:
-	smtpservice(net::ssocket& socket, mailpoolservice& mps, loginsystem& ls);
+	smtpservice(net::csocket& socket, mailpoolservice& mps, loginsystem& ls);
 	~smtpservice();
 
 	// Starts the SMTP protocol in an own thread
@@ -44,7 +44,7 @@ protected:
 	virtual void quit();
 
 	// Run the whole SMTP protocol
-	void run_protocol(net::ssocket& con_sock);
+	void run_protocol(net::csocket& con_sock);
 	void run_smtp_protocols(std::string line);
 
 private:
@@ -53,7 +53,7 @@ private:
 	static std::mutex login_attempts_mutex;
 
 	// Class variables
-	net::ssocket& socket;
+	net::csocket& socket;
 	mailpoolservice& mps;
 	loginsystem& login_system;
 

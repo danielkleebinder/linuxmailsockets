@@ -8,6 +8,7 @@
 
 #include "mailpoolservice.h"
 #include "email.h"
+#include "attachment.h"
 #include "../filesystem.h"
 #include "../filelock.h"
 
@@ -79,6 +80,12 @@ bool mailpoolservice::save_mail(email& mail) {
 	fs::file_append_text(mailtxt, mail.get_receiver(), true);
 	fs::file_append_text(mailtxt, mail.get_subject(), true);
 	fs::file_append_text(mailtxt, mail.get_message(), true);
+
+	// Write Attachments
+	for (attachment current : mail.get_attachments()) {
+		std::string attachment_file = concat_dir(attadir, current.get_name());
+		fs::file_write_bytes(attachment_file, current.get_data());
+	}
 	return true;
 }
 
