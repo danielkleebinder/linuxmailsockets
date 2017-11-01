@@ -70,19 +70,17 @@ namespace fs {
 		}
 
 		// Create directories and lock this process
-		{
-			raiilock sl(_mutex);
-			for (p = tmp + 1; *p; p++) {
-				if (*p == '/') {
-					*p = 0;
-					if (!make_dir(std::string(tmp))) {
-						return false;
-					}
-					*p = '/';
+		raiilock sl(_mutex);
+		for (p = tmp + 1; *p; p++) {
+			if (*p == '/') {
+				*p = 0;
+				if (!make_dir(std::string(tmp))) {
+					return false;
 				}
+				*p = '/';
 			}
-			return make_dir(std::string(tmp));
 		}
+		return make_dir(std::string(tmp));
 	}
 
 
@@ -107,16 +105,31 @@ namespace fs {
 	 * @return True if text was successfully appended.
 	 */
 	bool file_append_text(std::string file, std::string text, bool linefeed) {
-		{
-			raiilock sl(_mutex);
-			std::ofstream out;
-			out.open(file, std::ofstream::out | std::ofstream::app);
-			out << text;
-			if (linefeed) {
-				out << std::endl;
-			}
-			out.close();
+		raiilock sl(_mutex);
+		std::ofstream out;
+		out.open(file, std::ofstream::out | std::ofstream::app);
+		out << text;
+		if (linefeed) {
+			out << std::endl;
 		}
+		out.close();
+		return true;
+	}
+
+
+	/**
+	 * Writes the given byte array into the given file.
+	 *
+	 * @param file File to write bytes to.
+	 * @param bytes Bytes to be written.
+	 * @return True if the byte array was successfully written.
+	 */
+	bool file_write_bytes(std::string file, uint8_t* bytes) {
+		raiilock s1(_mutex);
+		std::ofstream out;
+		out.open(file, std::ofstream::out);
+		out.write((char*) bytes, sizeof(bytes));
+		out.close();
 		return true;
 	}
 

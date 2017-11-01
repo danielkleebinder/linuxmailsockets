@@ -26,6 +26,8 @@
 #include <time.h>
 
 // Include custom classes
+#include "appcontext.h"
+
 #include "login/loginsystem.h"
 #include "login/virtuallogin.h"
 #include "login/ldaplogin.h"
@@ -35,17 +37,19 @@
 #include "net/serversocket.h"
 
 #include "mail/email.h"
+#include "mail/attachment.h"
 #include "mail/smtpservice.h"
 #include "mail/mailpoolservice.h"
 
 
+// Defines
+#define MAX_TIMEOUT (30*60)
+
 
 // Define standard used namespaces
 using namespace std;
+using namespace net;
 
-
-// Globally used variables
-static net::sserversocket* ss;
 
 
 
@@ -74,6 +78,15 @@ void help(string program_name) {
 }
 
 
+/**
+ * Closes the server socket if it is available.
+ */
+void dispose_appcontext() {
+	if (appcontext::is_initialized()) {
+		appcontext::dispose();
+	}
+}
+
 
 /**
  * Handles the termination (CTRL-C) signal.
@@ -81,8 +94,7 @@ void help(string program_name) {
  * @param sig Signal ID.
  */
 void int_handler(int sig) {
-	ss->close_socket();
-	delete ss;
+	dispose_appcontext();
 	cout << endl << "Server is shutting down!" << endl;
 	exit(EXIT_SUCCESS);
 }
@@ -96,7 +108,6 @@ void register_signal_handler() {
 }
 
 
-
 /**
  * Main program entry point.
  *
@@ -108,6 +119,7 @@ int main(int argc, char** argv) {
 	// Register all used signal handlers
 	srand(time(NULL));
 	register_signal_handler();
+
 
 	// Parse Program Parameters
 	string program_name = argv[0];
@@ -138,31 +150,32 @@ int main(int argc, char** argv) {
 	// and try to start the server
 	try {
 		mailpoolservice mps(directory);
-		unique_ptr<loginsystem> lsptr(new virtuallogin());
+		unique_ptr<loginsystem> lsptr(new ldaplogin());
 		cout << "Debug Mode: " << (debug ? "On" : "Off") << endl;
 		cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
 
 		// Start server
-		ss = new net::sserversocket(port);
+		appcontext::initialize(port);
+		appcontext::get_serversocket()->bind();
 		while (true) {
 			cout << "Waiting for connections..." << endl;
-			net::ssocket connection = ss->accept_connection();
+			net::csocket* connection = appcontext::get_serversocket()->accept();
 
 			// Start smtp mail service and run in own thread
 			smtpservice smtps = smtpservice(connection, mps, *lsptr.get());
 			smtps.set_debug_mode(debug);
+			smtps.set_timeout(MAX_TIMEOUT);
 			smtps.start_forked_service();
 		}
 	} catch(exception& ex) {
 		cout << ex.what() << endl;
 		help(program_name);
-		delete ss;
+		dispose_appcontext();
 		exit(4);
 	}
 
 	// Close server socket
-	ss->close_socket();
-	delete ss;
+	dispose_appcontext();
 	return EXIT_SUCCESS;
 }
 

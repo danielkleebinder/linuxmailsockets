@@ -114,3 +114,41 @@ void stream::writebytes(uint8_t* bytes, int offset, int size) {
 		throw std::runtime_error("Error while writing bytes to the stream");
 	}
 }
+
+
+uint16_t stream::readuint16() {
+	uint16_t result;
+	readbytes((uint8_t*) &result, 2);
+	return result;
+}
+
+
+uint32_t stream::readuint32() {
+	uint32_t result;
+	readbytes((uint8_t*) &result, 4);
+	return result;
+}
+
+
+uint64_t stream::readuint64() {
+	uint64_t result;
+	readbytes((uint8_t*) &result, 8);
+	return result;
+
+}
+
+
+void stream::writeuint16(uint16_t v) {
+	writebytes((uint8_t*) &v, 2);
+}
+
+
+void stream::writeuint32(uint32_t v) {
+	writebytes((uint8_t*) &v, 4);
+}
+
+
+void stream::writeuint64(uint64_t v) {
+	writebytes((uint8_t*) &v, 8);
+}
+

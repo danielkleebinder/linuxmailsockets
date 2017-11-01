@@ -31,6 +31,15 @@ public:
 	void writebytes(uint8_t* bytes, int n);
 	void writebytes(uint8_t* bytes, int offset, int size);
 
+	// Read/write primitive data types
+	uint16_t readuint16();
+	uint32_t readuint32();
+	uint64_t readuint64();
+
+	void writeuint16(uint16_t v);
+	void writeuint32(uint32_t v);
+	void writeuint64(uint64_t v);
+
 protected:
 	int _handler;
 };

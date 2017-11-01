@@ -10,6 +10,7 @@
 
 #include <mutex>
 #include <map>
+#include <memory>
 
 
 /**
@@ -20,7 +21,7 @@
  */
 class smtpservice {
 public:
-	smtpservice(net::ssocket& socket, mailpoolservice& mps, loginsystem& ls);
+	smtpservice(net::csocket* socket, mailpoolservice& mps, loginsystem& ls);
 	~smtpservice();
 
 	// Starts the SMTP protocol in an own thread
@@ -31,6 +32,14 @@ public:
 	// Allow debug mode
 	void set_debug_mode(bool debug);
 	bool get_debug_mode();
+
+	// Timeout in seconds
+	void set_timeout(time_t sec);
+	time_t get_timeout();
+
+	// IP block
+	bool is_address_blocked(std::string addr);
+	time_t get_address_timeout(std::string addr);
 
 protected:
 	// Standard SMTP functions are virtual for newer
@@ -44,21 +53,30 @@ protected:
 	virtual void quit();
 
 	// Run the whole SMTP protocol
-	void run_protocol(net::ssocket& con_sock);
+	void run_protocol(net::csocket* con_sock);
 	void run_smtp_protocols(std::string line);
 
 private:
+	// Internal attempt data structure
+	struct attempt_t {
+		int num_attempts;
+		std::string ip;
+		time_t last_sec;
+	};
+
+
 	// Map and mutex for login attempts counter
-	static std::map<std::string, int> login_attempts;
+	static std::map<std::string, std::shared_ptr<struct attempt_t>> login_attempts;
 	static std::mutex login_attempts_mutex;
 
 	// Class variables
-	net::ssocket& socket;
+	net::csocket* socket;
 	mailpoolservice& mps;
 	loginsystem& login_system;
 
 	user usr;
 	bool debug;
+	time_t timeout;
 
 	// Private send ok and send error methods
 	void try_send_ok(stream& in);

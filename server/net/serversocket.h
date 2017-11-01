@@ -3,6 +3,11 @@
 
 #include "socket.h"
 #include <string>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 
 /**
  * AUTHOR: KLEEBINDER Daniel
@@ -11,22 +16,26 @@
  * (c) All rights reserved
  */
 namespace net {
-	class sserversocket {
+	class serversocket {
 	public:
-		sserversocket(int port);
-		virtual ~sserversocket();
+		serversocket(int port);
+		virtual ~serversocket();
 
+		void set_port(int port);
 		int get_port();
 
-		void close_socket();
+		void bind();
+		void close();
 
-		net::ssocket accept_connection();
+		net::csocket* accept();
 
 	protected:
 		int _port;
 
 	private:
 		int socket_handler;
+
+		std::string convert_address(struct sockaddr_in ca);
 	};
 }
 

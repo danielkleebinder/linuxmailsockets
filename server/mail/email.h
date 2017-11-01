@@ -1,7 +1,9 @@
 #ifndef EMAIL_H
 #define EMAIL_H
 
+#include "attachment.h"
 #include <string>
+#include <vector>
 
 /**
  * AUTHOR: KLEEBINDER Daniel
@@ -27,6 +29,8 @@ public:
 	void set_message(std::string message);
 	std::string get_message();
 
+	std::vector<attachment>& get_attachments();
+
 protected:
 	// From and To represent internally used names.
 	// These are limited to 8 characters
@@ -39,6 +43,9 @@ protected:
 	// The message is terminated my "\n.\n" sequence
 	// and has no limit in size
 	std::string message;
+
+	// Contains all attachments regarding this email
+	std::vector<attachment> attachments;
 };
 
 #endif // EMAIL_H
