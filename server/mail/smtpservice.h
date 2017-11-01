@@ -10,6 +10,7 @@
 
 #include <mutex>
 #include <map>
+#include <memory>
 
 
 /**
@@ -65,7 +66,7 @@ private:
 
 
 	// Map and mutex for login attempts counter
-	static std::map<std::string, attempt_t*> login_attempts;
+	static std::map<std::string, std::shared_ptr<struct attempt_t>> login_attempts;
 	static std::mutex login_attempts_mutex;
 
 	// Class variables
