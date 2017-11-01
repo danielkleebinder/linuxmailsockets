@@ -48,6 +48,16 @@ std::string net::csocket::get_host() {
 }
 
 
+void net::csocket::set_address(std::string address) {
+	_address = address;
+}
+
+
+std::string net::csocket::get_address() {
+	return _address;
+}
+
+
 void net::csocket::set_port(int port) {
 	if (socket_handler < 0) {
 		throw std::runtime_error("Socket is already bound");

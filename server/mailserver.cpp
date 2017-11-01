@@ -42,6 +42,9 @@
 #include "mail/mailpoolservice.h"
 
 
+// Defines
+#define MAX_TIMEOUT (30*60)
+
 
 // Define standard used namespaces
 using namespace std;
@@ -147,7 +150,7 @@ int main(int argc, char** argv) {
 	// and try to start the server
 	try {
 		mailpoolservice mps(directory);
-		unique_ptr<loginsystem> lsptr(new virtuallogin());
+		unique_ptr<loginsystem> lsptr(new ldaplogin());
 		cout << "Debug Mode: " << (debug ? "On" : "Off") << endl;
 		cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
 
@@ -156,11 +159,12 @@ int main(int argc, char** argv) {
 		appcontext::get_serversocket()->bind();
 		while (true) {
 			cout << "Waiting for connections..." << endl;
-			net::csocket connection = appcontext::get_serversocket()->accept();
+			net::csocket* connection = appcontext::get_serversocket()->accept();
 
 			// Start smtp mail service and run in own thread
 			smtpservice smtps = smtpservice(connection, mps, *lsptr.get());
 			smtps.set_debug_mode(debug);
+			smtps.set_timeout(MAX_TIMEOUT);
 			smtps.start_forked_service();
 		}
 	} catch(exception& ex) {

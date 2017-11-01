@@ -19,8 +19,12 @@ namespace net {
 
 		void set_host(std::string host);
 		std::string get_host();
+
+		void set_address(std::string address);
+		std::string get_address();
 		void set_port(int port);
 		int get_port();
+
 		int get_handler_id();
 
 		void bind();
@@ -30,6 +34,7 @@ namespace net {
 
 	protected:
 		std::string _host;
+		std::string _address;
 		int _port;
 		stream* _stream;
 

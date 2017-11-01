@@ -23,25 +23,25 @@
 
 
 // Initialize static variables
-std::map<std::string, int> smtpservice::login_attempts;
+std::map<std::string, smtpservice::attempt_t*> smtpservice::login_attempts;
 std::mutex smtpservice::login_attempts_mutex;
 
 
 // SMTP Service constructor
-smtpservice::smtpservice(net::csocket& socket, mailpoolservice& mps, loginsystem& ls)
-	: socket(socket), mps(mps), login_system(ls), debug(false) {}
+smtpservice::smtpservice(net::csocket* socket, mailpoolservice& mps, loginsystem& ls)
+	: socket(socket), mps(mps), login_system(ls), debug(false), timeout(300) {}
 
 smtpservice::~smtpservice() {}
 
 
 void smtpservice::start_forked_service() {
-	std::thread con_thread(&smtpservice::run_protocol, this, std::ref(socket));
+	std::thread con_thread(&smtpservice::run_protocol, this, socket);
 	con_thread.detach();
 }
 
 
 void smtpservice::start_service() {
-	run_protocol(std::ref(socket));
+	run_protocol(socket);
 }
 
 
@@ -55,20 +55,60 @@ bool smtpservice::get_debug_mode() {
 }
 
 
+void smtpservice::set_timeout(time_t sec) {
+	timeout = sec;
+}
+
+
+time_t smtpservice::get_timeout() {
+	return timeout;
+}
+
+
+bool smtpservice::is_address_blocked(std::string addr) {
+	raiilock lck(smtpservice::login_attempts_mutex);
+	if (smtpservice::login_attempts.find(addr) != smtpservice::login_attempts.end()) {
+		attempt_t* at = smtpservice::login_attempts[addr];
+		if (at->num_attempts >= 3) {
+			return (time(NULL) - at->last_sec) <= timeout;
+		}
+	}
+	return false;
+}
+
+
+time_t smtpservice::get_address_timeout(std::string addr) {
+	raiilock lck(smtpservice::login_attempts_mutex);
+	if (smtpservice::login_attempts.find(addr) != smtpservice::login_attempts.end()) {
+		attempt_t* at = smtpservice::login_attempts[addr];
+		if (at->num_attempts >= 3) {
+			return time(NULL) - at->last_sec;
+		}
+	}
+	return 0;
+}
+
+
 
 /**
  * Handles the connection from a client.
  *
  * @param con_sock Connected client socket.
  */
-void smtpservice::run_protocol(net::csocket& con_sock) {
-	stream socket_stream = con_sock.get_stream();
+void smtpservice::run_protocol(net::csocket* con_sock) {
+	stream s = con_sock->get_stream();
 	std::string line;
+
+	// Get socket information
+	std::string ip = con_sock->get_address();
+	int port = con_sock->get_port();
+
+	std::cout << ip << ":" << port << std::endl;
 
 	do {
 		// Read line by line using new streaming and socket API.
 		// Rethrow any uncaught exceptions into the main procedure.
-		line = socket_stream.readline();
+		line = s.readline();
 	
 		// Output debug
 		if (debug) {
@@ -82,16 +122,59 @@ void smtpservice::run_protocol(net::csocket& con_sock) {
 
 		// Login user before any other protocol can be executed
 		if (line == "LOGIN") {
+			bool contains_ip = false;
+			bool blocked = is_address_blocked(ip);
+			time_t diff = get_address_timeout(ip);
+
+			// Obtain lock and check login attempts
+			{
+				raiilock lck(smtpservice::login_attempts_mutex);
+				contains_ip = smtpservice::login_attempts.find(ip) != smtpservice::login_attempts.end();
+			}
+
+			// Skip login if the user is blocked
+			if (blocked) {
+				if (debug) {
+					std::cout << "  -> (DM) IP address (" << ip << ":" << port << ") is temporarily blocked for " << (timeout - diff) << " seconds" << std::endl;
+				}
+				try_send_error(s);
+				continue;
+			}
+
+			// Try user login
 			bool login_success = login();
 
-			// Set mutex and update failed/success login counter
-			raiilock lck(smtpservice::login_attempts_mutex);
+			// Check if ip entry already exists
+			if (!contains_ip) {
+				attempt_t* at = new attempt_t();
+				at->num_attempts = 0;
+				at->ip = ip;
+
+				// Obtain lock and set attempt
+				raiilock lck(smtpservice::login_attempts_mutex);
+				smtpservice::login_attempts[ip] = at;
+			}
+
+			// Check if login was successful
 			if (!login_success) {
-				smtpservice::login_attempts[usr.get_username()]++;
-				try_send_error(socket_stream);
+				raiilock lck(smtpservice::login_attempts_mutex);
+				
+				// Get attempt in locked environment
+				attempt_t* at = smtpservice::login_attempts[ip];
+				at->num_attempts++;
+				at->last_sec = time(NULL);
+				try_send_error(s);
 			} else {
-				smtpservice::login_attempts[usr.get_username()] = 0;
-				try_send_ok(socket_stream);
+				raiilock lck(smtpservice::login_attempts_mutex);
+				smtpservice::login_attempts[ip]->num_attempts = 0;
+				try_send_ok(s);
+			}
+
+			// Print login attempt debug output
+			if (debug) {
+				raiilock lck(smtpservice::login_attempts_mutex);
+				attempt_t* at = smtpservice::login_attempts[ip];
+				std::cout << "  -> (DM) Login Attempt by " << ip << ":" << port << " - Nr.: " << at->num_attempts << ", Last: " << at->last_sec << std::endl;
 			}
 		}
 
@@ -106,8 +189,8 @@ void smtpservice::run_protocol(net::csocket& con_sock) {
 
 	// Closing the socket
 	quit();
-	std::cout << "Closing socket ID-" << con_sock.get_handler_id() << std::endl;
-	con_sock.close();
+	std::cout << "Closing socket ID-" << con_sock->get_handler_id() << " from " << ip << ":" << port << std::endl;
+	con_sock->close();
 }
 
 
@@ -135,11 +218,10 @@ void smtpservice::run_smtp_protocols(std::string line) {
 
 
 bool smtpservice::login() {
-	stream in = socket.get_stream();
+	stream in = socket->get_stream();
 
 	// Update user and try logging in
 	try {
-		// TODO: If user is logged in, log out
 		if (usr.is_logged_in()) {
 			login_system.logout(usr);
 		}
@@ -153,7 +235,6 @@ bool smtpservice::login() {
 			std::cout << "(DM) LOGIN Protocol: " << usr.is_fhtw_user() << std::endl;
 		}
 
-		// TODO: Run LDAP login procedure here
 		login_system.login(usr);
 	} catch (std::exception& ex) {
 		// An error occurred
@@ -165,7 +246,7 @@ bool smtpservice::login() {
 
 
 void smtpservice::logout() {
-	stream in = socket.get_stream();
+	stream in = socket->get_stream();
 
 	// Try to log the user out
 	try {
@@ -183,7 +264,7 @@ void smtpservice::logout() {
 
 
 void smtpservice::send() {
-	stream in = socket.get_stream();
+	stream in = socket->get_stream();
 
 	// Create E-Mail
 	email mail;
@@ -218,6 +299,23 @@ void smtpservice::send() {
 			}
 		}
 		mail.set_message(final_msg);
+
+		// Read attachments protocol
+		uint16_t num_attachments = in.readuint16();
+		for (uint16_t i = 0; i < num_attachments; i++) {
+			std::string name = in.readline();
+
+			uint64_t num_bytes = in.readuint64();
+			uint8_t bytes[num_bytes];
+			in.readbytes(bytes, num_bytes);
+
+			attachment att;
+			att.set_name(name);
+			att.set_data(bytes);
+			mail.get_attachments().push_back(att);
+		}
+
+		// Save E-Mail
 		mps.save_mail(mail);
 	} catch (std::exception& ex) {
 		// An error occurred
@@ -232,7 +330,7 @@ void smtpservice::send() {
 
 
 void smtpservice::list() {
-	stream in = socket.get_stream();
+	stream in = socket->get_stream();
 
 	try {
 		std::string username = usr.get_username();
@@ -261,7 +359,7 @@ void smtpservice::list() {
 
 
 void smtpservice::read() {
-	stream in = socket.get_stream();
+	stream in = socket->get_stream();
 
 	try {
 		std::string username = usr.get_username();
@@ -292,7 +390,7 @@ void smtpservice::read() {
 
 
 void smtpservice::del() {
-	stream in = socket.get_stream();
+	stream in = socket->get_stream();
 
 	try {
 		std::string username = usr.get_username();
@@ -320,7 +418,7 @@ void smtpservice::quit() {
 	std::string username = usr.get_username().empty() ? "ANONYMOUS" : usr.get_username();
 	std::cout << "User \"" << username << "\" quits the mail server!" << std::endl;
 	try {
-		socket.get_stream().writeline("Disconnected from the server!\n");
+		socket->get_stream().writeline("Disconnected from the server!\n");
 	} catch (std::exception& ex) {
 		if (debug) {
 			std::cout << "(DM) Socket already closed: " << ex.what() << std::endl;

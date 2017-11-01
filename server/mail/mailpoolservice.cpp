@@ -26,12 +26,14 @@
 // Defines
 #define MAIL_NAME "mail.crn"
 #define LOCK_NAME "lock.lck"
+#define DEL_ARCHIVE_USR "DEL_ARCHIVE_USR"
 #define ATTACHMENT_DIR "attachments"
+#define IP_BLOCK_NAME "ipblock.blk"
 
 
 
 mailpoolservice::mailpoolservice(std::string basedir)
-	: basedir(basedir), archive_name("DEL_ARCHIVE_USR"), current_id(0) {
+	: basedir(basedir), archive_name(DEL_ARCHIVE_USR), current_id(0) {
 	if (basedir.empty()) {
 		throw std::runtime_error("Mailpool directory can't be empty!");
 	}
