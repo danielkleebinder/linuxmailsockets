@@ -18,6 +18,7 @@
 #include <fstream>
 #include <sstream>
 #include <memory>
+#include <map>
 
 #include <uuid/uuid.h>
 #include <sys/time.h>
@@ -162,6 +163,77 @@ std::vector<email> mailpoolservice::load_user_mails(std::string username) {
 	// Return all emails
 	return result;
 }
+
+
+bool mailpoolservice::save_blacklist(std::map<std::string, time_t> bl) {
+	std::string blistfile = concat_dir(basedir, BLACKLIST_NAME);
+
+	// Clear the file content and create it if it
+	// does not already exist
+	if (!fs::clear_file(blistfile)) {
+		return false;
+	}
+
+
+	// Write blacklist using the
+	//   key:value
+	// form.
+	std::stringstream ss;
+	for (auto const& entry : bl) {
+		ss.str(std::string(entry.first));
+		ss << ":" << entry.second;
+		if (!fs::file_append_text(blistfile, ss.str(), true)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+
+std::map<std::string, time_t> mailpoolservice::load_blacklist() {
+	std::map<std::string, time_t> result;
+	std::string blistfile = concat_dir(basedir, BLACKLIST_NAME);
+
+	// Return empty result if blacklist file does not exist
+	if (!fs::exists(blistfile)) {
+		return result;
+	}
+
+	std::ifstream input(blistfile);
+	
+	// Read and parse the blacklist file
+	std::string delimiter = ":";
+	std::string line;
+	std::stringstream ss;
+	int line_count = 0;
+
+	// Parse token
+	while (std::getline(input, line)) {
+		// Skip empty lines
+		if (line.empty()) {
+			continue;
+		}
+
+		// Skip Comments
+		if (line.find("#") == 0) {
+			continue;
+		}
+
+		// Parse key:value delimiter
+		size_t pos = line.find(delimiter);
+		std::string key = line.substr(0, pos);
+		std::string value = line.substr(pos + delimiter.length(), line.length());
+
+		// Insert key and value into result map
+		std::string::size_type sz;
+		result[key] = (time_t) std::stol(value, &sz);
+		line_count++;
+	}
+
+	// Return the result
+	return result;
+}
+
 
 
 std::string mailpoolservice::get_basedir() {

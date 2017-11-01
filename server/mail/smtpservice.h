@@ -57,16 +57,6 @@ protected:
 	void run_smtp_protocols(std::string line);
 
 private:
-	// Internal attempt data structure
-	struct attempt_t {
-		int num_attempts;
-		std::string ip;
-		time_t last_sec;
-	};
-
-
-	// Map and mutex for login attempts counter
-	static std::map<std::string, std::shared_ptr<struct attempt_t>> login_attempts;
 	static std::mutex login_attempts_mutex;
 
 	// Class variables
@@ -81,6 +71,8 @@ private:
 	// Private send ok and send error methods
 	void try_send_ok(stream& in);
 	void try_send_error(stream& in);
+
+	void serialize_blacklist();
 };
 
 

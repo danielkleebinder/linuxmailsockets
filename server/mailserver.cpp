@@ -150,12 +150,18 @@ int main(int argc, char** argv) {
 	// and try to start the server
 	try {
 		mailpoolservice mps(directory);
+
+		auto bl = mps.load_blacklist();
+		for (auto const& x : bl) {
+			cout << x.first << "=" << x.second << endl;
+		}
+
 		unique_ptr<loginsystem> lsptr(new ldaplogin());
 		cout << "Debug Mode: " << (debug ? "On" : "Off") << endl;
 		cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
 
 		// Start server
-		appcontext::initialize(port);
+		appcontext::initialize(port, mps);
 		appcontext::get_serversocket()->bind();
 		while (true) {
 			cout << "Waiting for connections..." << endl;
