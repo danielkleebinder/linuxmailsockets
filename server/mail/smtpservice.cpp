@@ -20,6 +20,7 @@
 #include <sstream>
 #include <mutex>
 #include <map>
+#include <memory>
 
 
 // Initialize static variables
@@ -138,7 +139,10 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 					std::cout << "  -> (DM) IP address (" << ip << ":" << port << ") is temporarily blocked for " << (timeout - diff) << " seconds" << std::endl;
 				}
 				try_send_error(s);
-				continue;
+				quit();
+				con_sock->close();
+				delete con_sock;
+				return;
 			}
 
 			// Try user login
@@ -191,6 +195,7 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 	quit();
 	std::cout << "Closing socket ID-" << con_sock->get_handler_id() << " from " << ip << ":" << port << std::endl;
 	con_sock->close();
+	delete con_sock;
 }
 
 
@@ -306,12 +311,14 @@ void smtpservice::send() {
 			std::string name = in.readline();
 
 			uint64_t num_bytes = in.readuint64();
-			uint8_t bytes[num_bytes];
+
+			std::shared_ptr<uint8_t> sp(new uint8_t[num_bytes], std::default_delete<uint8_t[]>());
+			uint8_t* bytes = sp.get();
 			in.readbytes(bytes, num_bytes);
 
 			attachment att;
 			att.set_name(name);
-			att.set_data(bytes);
+			att.set_data_ptr(sp);
 			mail.get_attachments().push_back(att);
 		}
 

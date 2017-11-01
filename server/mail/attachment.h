@@ -3,6 +3,7 @@
 
 #include <string>
 #include <cstdint>
+#include <memory>
 
 /**
  * AUTHOR: KLEEBINDER Daniel
@@ -18,7 +19,7 @@ public:
 	void set_name(std::string name);
 	std::string get_name();
 
-	void set_data(uint8_t* data);
+	void set_data_ptr(std::shared_ptr<uint8_t> sp);
 	uint8_t* get_data();
 
 protected:
@@ -26,7 +27,7 @@ protected:
 	std::string name;
 
 	// Data as byte array
-	uint8_t* data;
+	std::shared_ptr<uint8_t> sp;
 };
 
 #endif // ATTACHMENT_H

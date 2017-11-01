@@ -7,10 +7,8 @@
 
 
 #include "attachment.h"
-
 #include <string>
-#include <stdexcept>
-
+#include <memory>
 
 attachment::attachment() {}
 attachment::~attachment() {}
@@ -25,10 +23,10 @@ std::string attachment::get_name() {
 }
 
 
-void attachment::set_data(uint8_t* data) {
-	this->data = data;
+void attachment::set_data_ptr(std::shared_ptr<uint8_t> sp) {
+	this->sp = sp;
 }
 
 uint8_t* attachment::get_data() {
-	return data;
+	return sp.get();
 }

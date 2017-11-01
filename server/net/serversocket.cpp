@@ -9,7 +9,6 @@
 #include "socket.h"
 #include "serversocket.h"
 
-#include <stdio.h>
 #include <string>
 #include <cstring>
 #include <stdexcept>
@@ -23,7 +22,11 @@
 
 
 net::serversocket::serversocket(int port) : _port(port) {}
-net::serversocket::~serversocket() {}
+net::serversocket::~serversocket() {
+	if (socket_handler >= 0) {
+		close();
+	}
+}
 
 
 

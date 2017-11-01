@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include <fstream>
 #include <sstream>
+#include <memory>
 
 #include <uuid/uuid.h>
 #include <sys/time.h>
@@ -28,7 +29,7 @@
 #define LOCK_NAME "lock.lck"
 #define DEL_ARCHIVE_USR "DEL_ARCHIVE_USR"
 #define ATTACHMENT_DIR "attachments"
-#define IP_BLOCK_NAME "ipblock.blk"
+#define BLACKLIST_NAME "blacklist.blk"
 
 
 
@@ -186,6 +187,7 @@ std::string mailpoolservice::get_archive_name() {
 email mailpoolservice::parse_mail_dir(std::string mail_dir) {
 	std::string mailtxt = concat_dir(mail_dir, MAIL_NAME);
 	std::string lockfil = concat_dir(mail_dir, LOCK_NAME);
+	std::string attadir = concat_dir(mail_dir, ATTACHMENT_DIR);
 
 	// Check if the email even exists
 	if (!fs::exists(mailtxt)) {
@@ -218,8 +220,40 @@ email mailpoolservice::parse_mail_dir(std::string mail_dir) {
 		line_count++;
 	}
 
-	// Add message to the email object and return everything
+	// Add message to the email object
 	result.set_message(ss.str());
+
+	// Try to read all attachments regarding this email
+	std::vector<std::string> files = fs::list_files(attadir);
+	for (std::string current : files) {
+		std::string attachment_name = concat_dir(attadir, current);
+
+		// Check if stream could be opened
+		std::ifstream ai(attachment_name, std::ifstream::binary);
+		if (!ai) {
+			throw std::runtime_error("Could not open attachment file!");
+		}
+
+		// Seek stream positions and retreive file size
+		ai.seekg(0, std::ios::end);
+		std::streamsize size = ai.tellg();
+		ai.seekg(0, std::ios::beg);
+
+		// Read data
+		std::shared_ptr<uint8_t> sp(new uint8_t[size], std::default_delete<uint8_t[]>());
+		char* buffer = (char*) sp.get();
+		ai.read(buffer, size);
+		ai.close();
+
+		// Save attachment
+		attachment att;
+		att.set_name(current);
+		att.set_data_ptr(sp);
+		//att.set_data((uint8_t*) buffer);
+		result.get_attachments().push_back(att);
+	}
+
+	// Return the email and all its attachments
 	return result;
 }
 
