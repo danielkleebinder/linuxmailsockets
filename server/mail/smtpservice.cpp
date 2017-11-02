@@ -457,6 +457,9 @@ void smtpservice::try_send_error(stream& in) {
 
 
 void smtpservice::serialize_blacklist() {
+	if (debug) {
+		std::cout << "(DM) Serialize blacklist" << std::endl;
+	}
 	raiilock lck(smtpservice::login_attempts_mutex);
 	appcontext::serialize_blacklist(mps);
 }

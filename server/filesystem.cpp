@@ -109,7 +109,7 @@ namespace fs {
 		return true;
 	}
 
-
+	
 	/**
 	 * Appends the given text to the file.
 	 *
