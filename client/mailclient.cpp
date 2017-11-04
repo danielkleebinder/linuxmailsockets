@@ -101,8 +101,6 @@ char test[10];
     //fgets(test,10,stdin);
     //the problem was that scanf leaves a newline in the buffer and the next
     //fgets reads the newline
-
-
     switch (options) {
       case 1: c_send(create_socket);
               break;

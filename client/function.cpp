@@ -3,6 +3,7 @@
 #include <iostream>
 #include <thread>
 #include <sstream>
+#include <stack>
 
 /* myclient.c */
 #include <sys/types.h>
@@ -15,6 +16,11 @@
 #include <string.h>
 #include "function.h"
 #include <termios.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
 
 #define BUF 2048
 #define PORT 6543
@@ -75,7 +81,7 @@ int c_login(int create_socket)
   newt.c_lflag &= ~(ECHO);
 
 
-  do {
+  //do {
     char buffer[BUF] = "LOGIN\n";
     do {
       printf("What is your Username\n");
@@ -91,6 +97,8 @@ int c_login(int create_socket)
         fgets(password, BUF, stdin);
         fflush(stdin);
       } while(!(strlen(password) > 0));
+      password[strlen(password)-1] = '\0';
+      printf("password %s\n", password);
 
       /*resetting our old STDIN_FILENO*/
       tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
@@ -98,7 +106,8 @@ int c_login(int create_socket)
       strcat(buffer,username);
       strcat(buffer,password);
 
-      write(create_socket,buffer,strlen(buffer));
+      printf("login is sending: %s\n", buffer);
+      write(create_socket,buffer,strlen(buffer)+1);
 
       read(create_socket, response,5);
       printf("response: %s\n", response);
@@ -113,7 +122,7 @@ int c_login(int create_socket)
         printf("Maximum numbers of trys, plz try again later\n");
         return 0;
       }
-  } while(!((response[0] = 'O') && (response[1] == 'K')) && trys < 4);
+  //} while(!((response[0] = 'O') && (response[1] == 'K')) && trys < 4);
   return 1;
 }
 
@@ -123,6 +132,100 @@ void c_logout(int create_socket)
   //c_quit(create_socket);
 }
 
+/*
+*/
+
+int c_inputattachment(int create_socket,stack<char*> &stk)
+{
+  FILE *fptr;
+  char input[BUF];
+  int i = 0;
+  printf("Do you want to add attachments? y/n \n");
+  fgets(input, 10, stdin);
+  fflush(stdin);
+  if(!(input[0] == 'y' && input[1] == '\n'))
+  {
+    printf("No attachments are getting added\n");
+    return 0;
+  }
+
+  do {
+    printf("Filename(relativer pfad)? Quit with Q\n");
+    fgets(input,BUF,stdin);
+    fflush(stdin);
+
+    if(input[0] == 'Q')
+    {
+      break;
+    }
+
+    input[strlen(input)-1] = '\0';
+    if((fptr = fopen(input,"rb")) == NULL)
+    {
+      printf("An error accured(mby the wrong filename?)\n");
+      continue;
+    }
+    else
+    {
+      i++;
+      char * test = (char*) malloc(sizeof(char)*(2048+1));
+      strncpy(test,input,2048);
+      stk.push(test);
+    }
+  } while(!(input[0] == 'Q'));
+  return i;
+}
+
+void c_sendattachment(int create_socket,stack<char*> &stk)
+{
+  char* filename;
+  char filesize[BUF] = "";
+  struct stat filestat;
+//geting current working directory
+  char * cwd;
+  cwd = get_current_dir_name();
+  DIR *current = opendir(cwd);
+
+  while(!(stk.empty()))
+  {
+    //getting filename from the stack
+    filename = stk.top();
+    stk.pop();
+    if(filename == NULL)
+    {
+      printf("break trough filename\n");
+      break;
+    }
+    //sending filename
+    write(create_socket,filename,strlen(filename)+1);
+    if((fstatat(dirfd(current),filename,&filestat,0)) < 0)
+    {
+      printf("an error accured for the file %s\n", filename);
+      int errsv = errno;
+      printf("errorcode was: %d\n", errsv);
+      //write(create_socket,filename,strlen(filename)+1);
+      continue;
+    }
+    sprintf(filesize,"%jd",filestat.st_size);
+    write(create_socket,filesize,10);
+
+    FILE *fp;
+    char data[BUF];
+    fp = fopen(filename,"rb");
+    while(!(feof(fp)))
+    {
+      fread(data,sizeof(char)*BUF,1,fp);
+      write(create_socket,data,BUF);
+    }
+    fclose(fp);
+  }
+  free(cwd);
+}
+
+void c_saveattachments(int create_socket)
+{
+  
+}
 
 /*
 function c_send
@@ -138,6 +241,9 @@ void c_send(int create_socket)
   char message[BUF] = "";
   char buffer[BUF] = "SEND\n";
   char OK[5] = "";
+  int NumOfAtt = 0;
+  char STRNOA[BUF];
+  stack<char*> stk;
 
   do{
     printf("Receiver (Max 8 Characters): ");
@@ -161,7 +267,17 @@ void c_send(int create_socket)
     write(create_socket,message,strlen(message));
   }while(strcmp(message,".\n"));
 
+  NumOfAtt = c_inputattachment(create_socket,stk);
+  sprintf(STRNOA,"%d",NumOfAtt);
+  write(create_socket,STRNOA,strlen(STRNOA)+1);
+
+  if(NumOfAtt > 0)
+  {
+    c_sendattachment(create_socket,stk);
+  }
+
   read(create_socket, OK,5);
+
   if((OK[0] = 'O') && (OK[1] == 'K'))
   {
     printf("Sent mail successfully!\n");
@@ -233,7 +349,6 @@ void c_read(int create_socket)
     printf("Error\n");
     return;
   }
-
 
   printf("Message:\n");
   while(strcmp(buffer, ".\n") != 0)
