@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
 		cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
 
 		// Start server
-		appcontext::initialize(port);
+		appcontext::initialize(port, mps);
 		appcontext::get_serversocket()->bind();
 		while (true) {
 			cout << "Waiting for connections..." << endl;

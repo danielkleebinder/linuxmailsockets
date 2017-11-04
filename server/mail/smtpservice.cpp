@@ -8,6 +8,7 @@
 
 #include "../user.h"
 #include "../raiilock.h"
+#include "../appcontext.h"
 #include "../net/socket.h"
 #include "smtpservice.h"
 #include "mailpoolservice.h"
@@ -24,7 +25,6 @@
 
 
 // Initialize static variables
-std::map<std::string, std::shared_ptr<smtpservice::attempt_t>> smtpservice::login_attempts;
 std::mutex smtpservice::login_attempts_mutex;
 
 
@@ -68,8 +68,8 @@ time_t smtpservice::get_timeout() {
 
 bool smtpservice::is_address_blocked(std::string addr) {
 	raiilock lck(smtpservice::login_attempts_mutex);
-	if (smtpservice::login_attempts.find(addr) != smtpservice::login_attempts.end()) {
-		attempt_t* at = smtpservice::login_attempts[addr].get();
+	if (appcontext::get_blacklist()->find(addr) != appcontext::get_blacklist()->end()) {
+		appcontext::attempt_t* at = (*appcontext::get_blacklist())[addr].get();
 		if (at->num_attempts >= 3) {
 			return (time(NULL) - at->last_sec) <= timeout;
 		}
@@ -80,8 +80,8 @@ bool smtpservice::is_address_blocked(std::string addr) {
 
 time_t smtpservice::get_address_timeout(std::string addr) {
 	raiilock lck(smtpservice::login_attempts_mutex);
-	if (smtpservice::login_attempts.find(addr) != smtpservice::login_attempts.end()) {
-		attempt_t* at = smtpservice::login_attempts[addr].get();
+	if (appcontext::get_blacklist()->find(addr) != appcontext::get_blacklist()->end()) {
+		appcontext::attempt_t* at = (*appcontext::get_blacklist())[addr].get();
 		if (at->num_attempts >= 3) {
 			return time(NULL) - at->last_sec;
 		}
@@ -128,7 +128,7 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 			// Obtain lock and check login attempts
 			{
 				raiilock lck(smtpservice::login_attempts_mutex);
-				contains_ip = smtpservice::login_attempts.find(ip) != smtpservice::login_attempts.end();
+				contains_ip = appcontext::get_blacklist()->find(ip) != appcontext::get_blacklist()->end();
 			}
 
 			// Skip login if the user is blocked
@@ -140,6 +140,7 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 				quit();
 				con_sock->close();
 				delete con_sock;
+				serialize_blacklist();
 				return;
 			}
 
@@ -148,14 +149,13 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 
 			// Check if ip entry already exists
 			if (!contains_ip) {
-				auto sp = std::make_shared<attempt_t>();
-				attempt_t* at = sp.get();
+				auto sp = std::make_shared<appcontext::attempt_t>();
+				appcontext::attempt_t* at = sp.get();
 				at->num_attempts = 0;
-				at->ip = ip;
 
 				// Obtain lock and set attempt
 				raiilock lck(smtpservice::login_attempts_mutex);
-				smtpservice::login_attempts[ip] = sp;
+				(*appcontext::get_blacklist())[ip] = sp;
 			}
 
 			// Check if login was successful
@@ -163,20 +163,20 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 				raiilock lck(smtpservice::login_attempts_mutex);
 				
 				// Get attempt in locked environment
-				attempt_t* at = smtpservice::login_attempts[ip].get();
+				appcontext::attempt_t* at = (*appcontext::get_blacklist())[ip].get();
 				at->num_attempts++;
 				at->last_sec = time(NULL);
 				try_send_error(s);
 			} else {
 				raiilock lck(smtpservice::login_attempts_mutex);
-				((attempt_t*) smtpservice::login_attempts[ip].get())->num_attempts = 0;
+				(*appcontext::get_blacklist())[ip].get()->num_attempts = 0;
 				try_send_ok(s);
 			}
 
 			// Print login attempt debug output
 			if (debug) {
 				raiilock lck(smtpservice::login_attempts_mutex);
-				attempt_t* at = smtpservice::login_attempts[ip].get();
+				appcontext::attempt_t* at = (*appcontext::get_blacklist())[ip].get();
 				std::cout << "  -> (DM) Login Attempt by " << ip << ":" << port << " - Nr.: " << at->num_attempts << ", Last: " << at->last_sec << std::endl;
 			}
 		}
@@ -195,6 +195,7 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 	std::cout << "Closing socket ID-" << con_sock->get_handler_id() << " from " << ip << ":" << port << std::endl;
 	con_sock->close();
 	delete con_sock;
+	serialize_blacklist();
 }
 
 
@@ -454,3 +455,11 @@ void smtpservice::try_send_error(stream& in) {
 	}
 }
 
+
+void smtpservice::serialize_blacklist() {
+	if (debug) {
+		std::cout << "(DM) Serialize blacklist" << std::endl;
+	}
+	raiilock lck(smtpservice::login_attempts_mutex);
+	appcontext::serialize_blacklist(mps);
+}

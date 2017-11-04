@@ -97,6 +97,20 @@ namespace fs {
 
 
 	/**
+	 * Clears the content of the file.
+	 *
+	 * @param file File.
+	 * @return True if file was successfully cleared.
+	 */
+	bool clear_file(std::string file) {
+		std::ofstream ofs;
+		ofs.open(file, std::ofstream::out | std::ofstream::trunc);
+		ofs.close();
+		return true;
+	}
+
+	
+	/**
 	 * Appends the given text to the file.
 	 *
 	 * @param file File to append text on.
