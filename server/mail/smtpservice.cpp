@@ -241,12 +241,7 @@ bool smtpservice::login() {
 		if (debug) {
 			std::cout << "(DM) LOGIN Protocol: UN: " << usr.get_username() << std::endl;
 			std::cout << "(DM) LOGIN Protocol: PW: *****" << std::endl;
-<<<<<<< HEAD
-			//std::cout << "(DM) LOGIN Protocol: " << usr.get_password() << std::endl;
-			std::cout << "(DM) LOGIN Protocol: " << usr.is_fhtw_user() << std::endl;
-=======
 			std::cout << "(DM) LOGIN Protocol: TW: " << usr.is_fhtw_user() << std::endl;
->>>>>>> 9efc4ea7d8f8ba887b4eea3020a8873ad988c5e9
 		}
 
 		login_system.login(usr);
@@ -316,14 +311,11 @@ void smtpservice::send() {
 
 		// Read attachments protocol
 		uint8_t num_attachments = in.readbyte();
-<<<<<<< HEAD
-		for (uint16_t i = 0; i < num_attachments; i++) {
-=======
 		for (uint8_t i = 0; i < num_attachments; i++) {
->>>>>>> 9efc4ea7d8f8ba887b4eea3020a8873ad988c5e9
 			std::string name = in.readline();
 
 			uint64_t num_bytes = in.readuint64();
+			printf("filesize: %ld\n", num_bytes);
 			std::shared_ptr<uint8_t> sp(new uint8_t[num_bytes], std::default_delete<uint8_t[]>());
 			uint8_t* bytes = sp.get();
 			for(uint64_t i = 0; i < num_bytes;i++)

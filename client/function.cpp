@@ -207,6 +207,7 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
       continue;
     }
     filesize = filestat.st_size;
+    printf("%ld\n", filesize);
     write(create_socket,&filesize,8);
 
     FILE *fp;
@@ -264,7 +265,14 @@ void c_saveattachments(int create_socket)
     for(uint8_t i = 0; i < numofatt; i++)
     {
       readline(filename,create_socket,BUF);
+      printf("filename: %s\n", filename);
+      //if(filename[strlen(filename)-1] != '\n')
+      //{
+        filename[strlen(filename)-1] = '\0';
+      //}
+      
       read(create_socket,&filesize,8);
+      printf("filesize: %ld\n", filesize);
 
       FILE * fp = fopen(filename,"wb");
       for(uint64_t j = 0; j < filesize; j++)
@@ -273,7 +281,6 @@ void c_saveattachments(int create_socket)
         fwrite(&data,1,1,fp);
       }
       fclose(fp);
-
     }
     //free(cwd);
 }

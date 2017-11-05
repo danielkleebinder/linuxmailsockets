@@ -150,8 +150,8 @@ int main(int argc, char** argv) {
 	// and try to start the server
 	try {
 		mailpoolservice mps(directory);
-		unique_ptr<loginsystem> lsptr(new ldaplogin());
-		//unique_ptr<loginsystem> lsptr(new ldaplogin());
+		unique_ptr<loginsystem> lsptr(new virtuallogin());
+		//unique_ptr<loginsystem> lsptr(new virtuallogin());
 		cout << "Debug Mode: " << (debug ? "On" : "Off") << endl;
 		cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
 

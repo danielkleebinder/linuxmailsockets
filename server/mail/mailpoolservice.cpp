@@ -89,7 +89,7 @@ bool mailpoolservice::save_mail(email& mail) {
 	// Write Attachments
 	for (attachment current : mail.get_attachments()) {
 		std::string attachment_file = concat_dir(attadir, current.get_name());
-		fs::file_write_bytes(attachment_file, current.get_data());
+		fs::file_write_bytes(attachment_file, current);
 	}
 	return true;
 }
@@ -214,10 +214,10 @@ std::map<std::string, time_t> mailpoolservice::load_blacklist() {
 	// Return empty result if blacklist file does not exist
 	if (!fs::exists(blistfile)) {
 		return result;
-	}	
+	}
 
 	std::ifstream input(blistfile);
-	
+
 	// Read and parse the blacklist file
 	std::string delimiter = "=";
 	std::string line;
@@ -289,7 +289,7 @@ email mailpoolservice::parse_mail_dir(std::string mail_dir) {
 
 	email result;
 	std::ifstream input(mailtxt);
-	
+
 	// Read and parse the email file
 	std::string line;
 	std::stringstream ss;
