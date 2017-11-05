@@ -80,7 +80,6 @@ int c_login(int create_socket)
   /*setting the approriate bit in the termios struct*/
   newt.c_lflag &= ~(ECHO);
 
-
   do {
     char buffer[BUF] = "LOGIN\n";
     do {
@@ -226,7 +225,57 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
 
 void c_saveattachments(int create_socket)
 {
+    //int size;
+    char number[BUF] = "";
+    char tosend[BUF] = "ATT\n";
+    char OK[10] = "";
+    uint8_t numofatt;
+    char filename[BUF];
+    uint64_t filesize;
+    uint8_t data;
+    //char * cwd;
+    //cwd = get_current_dir_name();
+    //DIR *current = opendir(cwd);
 
+
+    printf("Enter the message number you want to save the attacments from: ");
+    fgets(number, 8, stdin);
+    fflush(stdin);
+    strcat(tosend, number);
+
+    send(create_socket, tosend, strlen(tosend), 0);
+
+    readline(OK, create_socket, 10);
+
+    if(!((OK[0] = 'O') && (OK[1] == 'K')))
+    {
+      printf("Error\n");
+      return;
+    }
+
+    read(create_socket,&numofatt,1);
+
+    if(numofatt <= 0)
+    {
+      printf("no attachments \n");
+      return;
+    }
+
+    for(uint8_t i = 0; i < numofatt; i++)
+    {
+      readline(filename,create_socket,BUF);
+      read(create_socket,&filesize,8);
+
+      FILE * fp = fopen(filename,"wb");
+      for(uint64_t j = 0; j < filesize; j++)
+      {
+        read(create_socket,&data,1);
+        fwrite(&data,1,1,fp);
+      }
+      fclose(fp);
+
+    }
+    //free(cwd);
 }
 
 /*
@@ -360,6 +409,14 @@ void c_read(int create_socket)
     printf("%s", buffer);
   }
   read(create_socket,buffer,BUF-1); //get rid of everything still in the stream
+  printf("Do you want to save the attachments? y/n\n");
+  char input[10];
+  fgets(input,10,stdin);
+  fflush(stdin);
+  if(input[0] == 'y')
+  {
+    c_saveattachments(create_socket);
+  }
   printf("\n\n");
 }
 
