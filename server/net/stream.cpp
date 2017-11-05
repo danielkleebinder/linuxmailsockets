@@ -89,8 +89,12 @@ uint8_t stream::readbyte() {
 
 
 void stream::readbytes(uint8_t* bytes, int n) {
+<<<<<<< HEAD
 	ssize_t c = read(_handler, &bytes, n);
 
+=======
+	ssize_t c = read(_handler, bytes, n);
+>>>>>>> 9efc4ea7d8f8ba887b4eea3020a8873ad988c5e9
 	if (c < 1) {
 		throw std::runtime_error("Error while reading bytes from the stream");
 	}

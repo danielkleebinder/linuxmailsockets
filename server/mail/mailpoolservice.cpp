@@ -336,7 +336,7 @@ email mailpoolservice::parse_mail_dir(std::string mail_dir) {
 		attachment att;
 		att.set_name(current);
 		att.set_data_ptr(sp);
-		//att.set_data((uint8_t*) buffer);
+		att.set_size((uint64_t) size);
 		result.get_attachments().push_back(att);
 	}
 

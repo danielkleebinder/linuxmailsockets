@@ -22,12 +22,16 @@ public:
 	void set_data_ptr(std::shared_ptr<uint8_t> sp);
 	uint8_t* get_data();
 
+	void set_size(uint64_t size);
+	uint64_t get_size();
+
 protected:
 	// File name which is usually limited to 255 characters
 	std::string name;
 
 	// Data as byte array
 	std::shared_ptr<uint8_t> sp;
+	uint64_t size;
 };
 
 #endif // ATTACHMENT_H

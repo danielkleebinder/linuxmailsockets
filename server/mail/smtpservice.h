@@ -47,6 +47,7 @@ protected:
 	virtual bool login();
 	virtual void logout();
 	virtual void send();
+	virtual void att();
 	virtual void list();
 	virtual void read();
 	virtual void del();
