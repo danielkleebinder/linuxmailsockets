@@ -81,7 +81,7 @@ int c_login(int create_socket)
   newt.c_lflag &= ~(ECHO);
 
 
-  //do {
+  do {
     char buffer[BUF] = "LOGIN\n";
     do {
       printf("What is your Username\n");
@@ -98,7 +98,6 @@ int c_login(int create_socket)
         fflush(stdin);
       } while(!(strlen(password) > 0));
       password[strlen(password)-1] = '\0';
-      printf("password %s\n", password);
 
       /*resetting our old STDIN_FILENO*/
       tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
@@ -106,7 +105,6 @@ int c_login(int create_socket)
       strcat(buffer,username);
       strcat(buffer,password);
 
-      printf("login is sending: %s\n", buffer);
       write(create_socket,buffer,strlen(buffer)+1);
 
       read(create_socket, response,5);
@@ -122,7 +120,7 @@ int c_login(int create_socket)
         printf("Maximum numbers of trys, plz try again later\n");
         return 0;
       }
-  //} while(!((response[0] = 'O') && (response[1] == 'K')) && trys < 4);
+  } while(!((response[0] = 'O') && (response[1] == 'K')) && trys < 4);
   return 1;
 }
 
@@ -179,6 +177,7 @@ int c_inputattachment(int create_socket,stack<char*> &stk)
 void c_sendattachment(int create_socket,stack<char*> &stk)
 {
   char* filename;
+  uint16_t intfilesize;
   char filesize[BUF] = "";
   struct stat filestat;
 //geting current working directory
@@ -198,6 +197,7 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
     }
     //sending filename
     write(create_socket,filename,strlen(filename)+1);
+    //getting filesize
     if((fstatat(dirfd(current),filename,&filestat,0)) < 0)
     {
       printf("an error accured for the file %s\n", filename);
@@ -206,16 +206,19 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
       //write(create_socket,filename,strlen(filename)+1);
       continue;
     }
-    sprintf(filesize,"%jd",filestat.st_size);
-    write(create_socket,filesize,10);
+    //sprintf(filesize,"%jd",filestat.st_size);
+    //sprintf(intfilesize, "%d", filesize);
+    //printf("filesize %d\n", intfilesize);
+    write(create_socket,&filestat.st_size,10);
 
     FILE *fp;
-    char data[BUF];
+    uint8_t data;
     fp = fopen(filename,"rb");
     while(!(feof(fp)))
     {
-      fread(data,sizeof(char)*BUF,1,fp);
-      write(create_socket,data,BUF);
+      fread(&data,sizeof(uint8_t),1,fp);
+      printf("data that is getting sent: %c\n", data);
+      write(create_socket,&data,BUF);
     }
     fclose(fp);
   }
@@ -224,7 +227,7 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
 
 void c_saveattachments(int create_socket)
 {
-  
+
 }
 
 /*
@@ -241,7 +244,7 @@ void c_send(int create_socket)
   char message[BUF] = "";
   char buffer[BUF] = "SEND\n";
   char OK[5] = "";
-  int NumOfAtt = 0;
+  uint16_t NumOfAtt = 0;
   char STRNOA[BUF];
   stack<char*> stk;
 
@@ -268,8 +271,10 @@ void c_send(int create_socket)
   }while(strcmp(message,".\n"));
 
   NumOfAtt = c_inputattachment(create_socket,stk);
-  sprintf(STRNOA,"%d",NumOfAtt);
-  write(create_socket,STRNOA,strlen(STRNOA)+1);
+  printf("number of attachments: %d\n", NumOfAtt);
+  //sprintf(STRNOA,"%d",NumOfAtt);
+  //write(create_socket,STRNOA,strlen(STRNOA)+1);
+  write(create_socket,&NumOfAtt,2);
 
   if(NumOfAtt > 0)
   {
