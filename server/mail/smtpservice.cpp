@@ -204,6 +204,10 @@ void smtpservice::run_smtp_protocols(std::string line) {
 		send();
 	}
 
+	if (line == "ATT") {
+		att();
+	}
+
 	if (line == "LIST") {
 		list();
 	}
@@ -235,9 +239,9 @@ bool smtpservice::login() {
 		usr.set_password(in.readline());
 
 		if (debug) {
-			std::cout << "(DM) LOGIN Protocol: " << usr.get_username() << std::endl;
+			std::cout << "(DM) LOGIN Protocol: UN: " << usr.get_username() << std::endl;
 			std::cout << "(DM) LOGIN Protocol: PW: *****" << std::endl;
-			std::cout << "(DM) LOGIN Protocol: " << usr.is_fhtw_user() << std::endl;
+			std::cout << "(DM) LOGIN Protocol: TW: " << usr.is_fhtw_user() << std::endl;
 		}
 
 		login_system.login(usr);
@@ -306,8 +310,8 @@ void smtpservice::send() {
 		mail.set_message(final_msg);
 
 		// Read attachments protocol
-		uint16_t num_attachments = in.readuint16();
-		for (uint16_t i = 0; i < num_attachments; i++) {
+		uint8_t num_attachments = in.readbyte();
+		for (uint8_t i = 0; i < num_attachments; i++) {
 			std::string name = in.readline();
 
 			uint64_t num_bytes = in.readuint64();
@@ -319,6 +323,7 @@ void smtpservice::send() {
 			attachment att;
 			att.set_name(name);
 			att.set_data_ptr(sp);
+			att.set_size(num_bytes);
 			mail.get_attachments().push_back(att);
 		}
 
@@ -333,6 +338,38 @@ void smtpservice::send() {
 
 	// Everything is fine
 	try_send_ok(in);
+}
+
+
+void smtpservice::att() {
+	stream in = socket->get_stream();
+
+	try {
+		std::string username = usr.get_username();
+		int msg_num = atoi(in.readline().c_str());
+
+		if (debug) {
+			std::cout << "(DM) ATT Protocol: " << username << std::endl;
+			std::cout << "(DM) ATT Protocol: " << msg_num << std::endl;
+		}
+
+		// Load mail
+		email mail = mps.load_mail(username, msg_num);
+
+		// Nothing has thrown an exception, everything is fine so far
+		try_send_ok(in);
+
+		// Send attachments
+		in.writebyte((uint8_t) mail.get_attachments().size());
+		for (attachment att : mail.get_attachments()) {
+			in.writeline(att.get_name() + '\n');
+			in.writeuint64(att.get_size());
+			in.writebytes(att.get_data(), (int) att.get_size());
+		}
+	} catch(std::exception& ex) {
+		std::cout << ex.what() << std::endl;
+		try_send_error(in);
+	}
 }
 
 

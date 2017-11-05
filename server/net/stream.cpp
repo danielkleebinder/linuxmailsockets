@@ -90,7 +90,7 @@ uint8_t stream::readbyte() {
 
 
 void stream::readbytes(uint8_t* bytes, int n) {
-	ssize_t c = read(_handler, &bytes, n);
+	ssize_t c = read(_handler, bytes, n);
 	if (c < 1) {
 		throw std::runtime_error("Error while reading bytes from the stream");
 	}
@@ -151,4 +151,3 @@ void stream::writeuint32(uint32_t v) {
 void stream::writeuint64(uint64_t v) {
 	writebytes((uint8_t*) &v, 8);
 }
-
