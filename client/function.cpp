@@ -177,10 +177,10 @@ int c_inputattachment(int create_socket,stack<char*> &stk)
 void c_sendattachment(int create_socket,stack<char*> &stk)
 {
   char* filename;
-  uint16_t intfilesize;
-  char filesize[BUF] = "";
+  uint64_t filesize;
+  //char filesize[BUF] = "";
   struct stat filestat;
-//geting current working directory
+  //geting current working directory
   char * cwd;
   cwd = get_current_dir_name();
   DIR *current = opendir(cwd);
@@ -196,6 +196,7 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
       break;
     }
     //sending filename
+    printf("filename: %s\n", filename);
     write(create_socket,filename,strlen(filename)+1);
     //getting filesize
     if((fstatat(dirfd(current),filename,&filestat,0)) < 0)
@@ -206,19 +207,17 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
       //write(create_socket,filename,strlen(filename)+1);
       continue;
     }
-    //sprintf(filesize,"%jd",filestat.st_size);
-    //sprintf(intfilesize, "%d", filesize);
-    //printf("filesize %d\n", intfilesize);
-    write(create_socket,&filestat.st_size,10);
+    filesize = filestat.st_size;
+    write(create_socket,&filesize,8);
 
     FILE *fp;
-    uint8_t data;
     fp = fopen(filename,"rb");
-    while(!(feof(fp)))
+    for(uint64_t  i = 0; i < filesize; i++)
     {
+      uint8_t data = 0;
       fread(&data,sizeof(uint8_t),1,fp);
       printf("data that is getting sent: %c\n", data);
-      write(create_socket,&data,BUF);
+      write(create_socket,&data,1);
     }
     fclose(fp);
   }
@@ -244,8 +243,7 @@ void c_send(int create_socket)
   char message[BUF] = "";
   char buffer[BUF] = "SEND\n";
   char OK[5] = "";
-  uint16_t NumOfAtt = 0;
-  char STRNOA[BUF];
+  uint8_t NumOfAtt = 0;
   stack<char*> stk;
 
   do{
@@ -274,7 +272,7 @@ void c_send(int create_socket)
   printf("number of attachments: %d\n", NumOfAtt);
   //sprintf(STRNOA,"%d",NumOfAtt);
   //write(create_socket,STRNOA,strlen(STRNOA)+1);
-  write(create_socket,&NumOfAtt,2);
+  write(create_socket,&NumOfAtt,1);
 
   if(NumOfAtt > 0)
   {

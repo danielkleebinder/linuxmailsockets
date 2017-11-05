@@ -73,7 +73,8 @@ int main (int argc, char **argv) {
      perror("Connect error - no server available");
      return EXIT_FAILURE;
   }
-  LOGIN:while(c_login(create_socket) == 0)
+  //LOGIN:
+  while(c_login(create_socket) == 0)
   {
     char input[10];
     printf("do you want to quit? y/n\n" );

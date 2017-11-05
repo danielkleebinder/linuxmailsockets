@@ -5,7 +5,6 @@
  * (c) All rights reserved
  */
 
-
 #include "stream.h"
 
 #include <stdlib.h>
@@ -64,7 +63,7 @@ std::string stream::readline() {
 	}
 
 	// Return the string result
-	return result.str();	
+	return result.str();
 }
 
 
@@ -81,19 +80,21 @@ void stream::writeline(std::string str) {
 	}
 }
 
-
 uint8_t stream::readbyte() {
 	uint8_t result;
-	readbytes(&result, 1);
+	//readbytes(&result, 1);
+	read(_handler,&result,1);
 	return result;
 }
 
 
 void stream::readbytes(uint8_t* bytes, int n) {
 	ssize_t c = read(_handler, &bytes, n);
+
 	if (c < 1) {
 		throw std::runtime_error("Error while reading bytes from the stream");
 	}
+
 }
 
 
@@ -118,21 +119,22 @@ void stream::writebytes(uint8_t* bytes, int offset, int size) {
 
 uint16_t stream::readuint16() {
 	uint16_t result;
-	readbytes((uint8_t*) &result, 2);
+	read(_handler,&result,2);
 	return result;
 }
 
 
 uint32_t stream::readuint32() {
 	uint32_t result;
-	readbytes((uint8_t*) &result, 4);
+	read(_handler,&result,4);
 	return result;
 }
 
 
 uint64_t stream::readuint64() {
 	uint64_t result;
-	readbytes((uint8_t*) &result, 8);
+	//readbytes(&result, 1);
+	read(_handler,&result,8);
 	return result;
 
 }
@@ -151,4 +153,3 @@ void stream::writeuint32(uint32_t v) {
 void stream::writeuint64(uint64_t v) {
 	writebytes((uint8_t*) &v, 8);
 }
-

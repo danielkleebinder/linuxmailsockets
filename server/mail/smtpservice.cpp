@@ -108,7 +108,7 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 		// Read line by line using new streaming and socket API.
 		// Rethrow any uncaught exceptions into the main procedure.
 		line = s.readline();
-	
+
 		// Output debug
 		if (debug) {
 			std::cout << "(DM) Read line: " << line << std::endl;
@@ -161,7 +161,7 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 			// Check if login was successful
 			if (!login_success) {
 				raiilock lck(smtpservice::login_attempts_mutex);
-				
+
 				// Get attempt in locked environment
 				appcontext::attempt_t* at = (*appcontext::get_blacklist())[ip].get();
 				at->num_attempts++;
@@ -237,6 +237,7 @@ bool smtpservice::login() {
 		if (debug) {
 			std::cout << "(DM) LOGIN Protocol: " << usr.get_username() << std::endl;
 			std::cout << "(DM) LOGIN Protocol: PW: *****" << std::endl;
+			//std::cout << "(DM) LOGIN Protocol: " << usr.get_password() << std::endl;
 			std::cout << "(DM) LOGIN Protocol: " << usr.is_fhtw_user() << std::endl;
 		}
 
@@ -283,7 +284,7 @@ void smtpservice::send() {
 			std::cout << "(DM) SEND Protocol: " << mail.get_receiver() << std::endl;
 			std::cout << "(DM) SEND Protocol: " << mail.get_subject() << std::endl;
 		}
-	
+
 		// Read message until the char sequence "\n.\n" occurs
 		std::stringstream message;
 		std::string msg_ending = "\n.\n";
@@ -306,16 +307,17 @@ void smtpservice::send() {
 		mail.set_message(final_msg);
 
 		// Read attachments protocol
-		uint16_t num_attachments = in.readuint16();
+		uint8_t num_attachments = in.readbyte();
 		for (uint16_t i = 0; i < num_attachments; i++) {
 			std::string name = in.readline();
 
 			uint64_t num_bytes = in.readuint64();
-
 			std::shared_ptr<uint8_t> sp(new uint8_t[num_bytes], std::default_delete<uint8_t[]>());
 			uint8_t* bytes = sp.get();
-			in.readbytes(bytes, num_bytes);
-
+			for(uint64_t i = 0; i < num_bytes;i++)
+			{
+				bytes[i] = in.readbyte();
+			}
 			attachment att;
 			att.set_name(name);
 			att.set_data_ptr(sp);
