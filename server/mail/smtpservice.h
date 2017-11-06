@@ -29,10 +29,6 @@ public:
 	// Starts the SMTP protocol in the main thread
 	void start_service();
 
-	// Allow debug mode
-	void set_debug_mode(bool debug);
-	bool get_debug_mode();
-
 	// Timeout in seconds
 	void set_timeout(time_t sec);
 	time_t get_timeout();
@@ -66,7 +62,6 @@ private:
 	loginsystem& login_system;
 
 	user usr;
-	bool debug;
 	time_t timeout;
 
 	// Private send ok and send error methods
@@ -74,6 +69,7 @@ private:
 	void try_send_error(stream& in);
 
 	void serialize_blacklist();
+	void release_resources();
 };
 
 

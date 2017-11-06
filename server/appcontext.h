@@ -32,6 +32,10 @@ public:
 	static net::serversocket* get_serversocket();
 	static std::map<std::string, std::shared_ptr<struct attempt_t>>* get_blacklist();
 
+	static void set_debug_mode(bool debug_mode);
+	static bool is_debug_mode();
+	static void debug_log(std::string msg);
+	static void debug_log(std::string msg, int layer);
 	static void serialize_blacklist(mailpoolservice& mps);
 
 	static void dispose();
@@ -40,6 +44,7 @@ private:
 	appcontext();
 
 	static bool initialized;
+	static bool debug_mode;
 	static net::serversocket* ss;
 	static std::map<std::string, std::shared_ptr<struct attempt_t>>* blacklist;
 

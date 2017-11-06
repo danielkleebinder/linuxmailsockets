@@ -157,6 +157,7 @@ int main(int argc, char** argv) {
 
 		// Start server
 		appcontext::initialize(port, mps);
+		appcontext::set_debug_mode(debug);
 		appcontext::get_serversocket()->bind();
 		while (true) {
 			cout << "Waiting for connections..." << endl;
@@ -164,7 +165,6 @@ int main(int argc, char** argv) {
 
 			// Start smtp mail service and run in own thread
 			smtpservice smtps = smtpservice(connection, mps, *lsptr.get());
-			smtps.set_debug_mode(debug);
 			smtps.set_timeout(MAX_TIMEOUT);
 			smtps.start_forked_service();
 		}

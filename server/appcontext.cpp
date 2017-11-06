@@ -8,10 +8,12 @@
 
 #include "appcontext.h"
 
+#include <iostream>
 #include <stdexcept>
 #include <map>
 #include <memory>
 #include <string>
+#include <sstream>
 
 #include "mail/mailpoolservice.h"
 #include "net/serversocket.h"
@@ -25,6 +27,7 @@ appcontext::~appcontext() {}
 
 // Variables
 bool appcontext::initialized = false;
+bool appcontext::debug_mode = false;
 net::serversocket* appcontext::ss;
 std::map<std::string, std::shared_ptr<appcontext::attempt_t>>* appcontext::blacklist;
 
@@ -73,6 +76,42 @@ std::map<std::string, std::shared_ptr<struct appcontext::attempt_t>>* appcontext
 		throw std::runtime_error("App Context was not initialized yet");
 	}
 	return blacklist;
+}
+
+// Enables or disables the debug mode
+void appcontext::set_debug_mode(bool debug_mode) {
+	appcontext::debug_mode = debug_mode;
+}
+
+// Returns the debug mode
+bool appcontext::is_debug_mode() {
+	return debug_mode;
+}
+
+// Outputs a debug message on layer 0
+void appcontext::debug_log(std::string msg) {
+	debug_log(msg, 0);
+}
+
+// Outputs a debug message if the debug mode is enabled
+void appcontext::debug_log(std::string msg, int layer) {
+	if (!debug_mode) {
+		return;
+	}
+
+	// Generate debug output
+	std::stringstream ss;
+	ss << "(DM)";
+	for (int i = 0; i < layer; i++) {
+		ss << "  ";
+	}
+	if (layer > 0) {
+		ss << "->";
+	}
+	ss << " " << msg;
+
+	// Print message
+	std::cout << ss.str() << std::endl;
 }
 
 // Serializes the blacklist to the given mail pool service

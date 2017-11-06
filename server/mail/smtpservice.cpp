@@ -31,7 +31,7 @@ std::mutex smtpservice::login_attempts_mutex;
 
 // SMTP Service constructor
 smtpservice::smtpservice(net::csocket* socket, mailpoolservice& mps, loginsystem& ls)
-	: socket(socket), mps(mps), login_system(ls), debug(false), timeout(300) {}
+	: socket(socket), mps(mps), login_system(ls), timeout(300) {}
 
 smtpservice::~smtpservice() {}
 
@@ -44,16 +44,6 @@ void smtpservice::start_forked_service() {
 
 void smtpservice::start_service() {
 	run_protocol(socket);
-}
-
-
-void smtpservice::set_debug_mode(bool debug) {
-	this->debug = debug;
-}
-
-
-bool smtpservice::get_debug_mode() {
-	return debug;
 }
 
 
@@ -105,15 +95,24 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 	std::string ip = con_sock->get_address();
 	int port = con_sock->get_port();
 
+	
+	bool blocked = is_address_blocked(ip);
+	if (blocked) {
+		time_t diff = get_address_timeout(ip);
+		appcontext::debug_log("IP address (" + ip + ":" + std::to_string(port) + ") is temporarily blocked for " + std::to_string(timeout - diff) + " seconds", 1);
+		try_send_error(s);
+		quit();
+		release_resources();
+		return;
+	}
+
 	do {
 		// Read line by line using new streaming and socket API.
 		// Rethrow any uncaught exceptions into the main procedure.
 		line = s.readline();
 
 		// Output debug
-		if (debug) {
-			std::cout << "(DM) Read line: " << line << std::endl;
-		}
+		appcontext::debug_log("Read line: " + line);
 
 		// Check if line is null or empty
 		if (line.empty()) {
@@ -123,7 +122,7 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 		// Login user before any other protocol can be executed
 		if (line == "LOGIN") {
 			bool contains_ip = false;
-			bool blocked = is_address_blocked(ip);
+			blocked = is_address_blocked(ip);
 			time_t diff = get_address_timeout(ip);
 
 			// Obtain lock and check login attempts
@@ -134,9 +133,7 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 
 			// Skip login if the user is blocked
 			if (blocked) {
-				if (debug) {
-					std::cout << "(DM)  -> IP address (" << ip << ":" << port << ") is temporarily blocked for " << (timeout - diff) << " seconds" << std::endl;
-				}
+				appcontext::debug_log("IP address (" + ip + ":" + std::to_string(port) + ") is temporarily blocked for " + std::to_string(timeout - diff) + " seconds", 1);
 				try_send_error(s);
 				quit();
 				con_sock->close();
@@ -147,10 +144,7 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 
 			// Try user login
 			bool login_success = login();
-
-			if (debug) {
-				std::cout << "(DM)  -> Login successful: " << login_success << std::endl;
-			}
+			appcontext::debug_log("Login successful: " + std::to_string(login_success), 1);
 
 			// Check if ip entry already exists
 			if (!contains_ip) {
@@ -179,10 +173,10 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 			}
 
 			// Print login attempt debug output
-			if (debug) {
+			if (appcontext::is_debug_mode()) {
 				raiilock lck(smtpservice::login_attempts_mutex);
 				appcontext::attempt_t* at = (*appcontext::get_blacklist())[ip].get();
-				std::cout << "(DM)  -> Login Attempt by " << ip << ":" << port << " - Nr.: " << at->num_attempts << ", Last: " << at->last_sec << std::endl;
+				appcontext::debug_log("Login Attempt by " + ip + ":" + std::to_string(port) + " - Nr.: " + std::to_string(at->num_attempts) + ", Last: " + std::to_string(at->last_sec));
 			}
 		}
 
@@ -243,13 +237,14 @@ bool smtpservice::login() {
 		usr.set_username(in.readline());
 		usr.set_password(in.readline());
 
-		if (debug) {
-			std::cout << "(DM) LOGIN Protocol: UN: " << usr.get_username() << std::endl;
-			std::cout << "(DM) LOGIN Protocol: PW: *****" << std::endl;
-			std::cout << "(DM) LOGIN Protocol: TW: " << usr.is_fhtw_user() << std::endl;
-		}
+		appcontext::debug_log("Start [LOGIN] Protocol");
+		appcontext::debug_log("Username: " + usr.get_username(), 1);
+		appcontext::debug_log("Password: ********", 1);
+		appcontext::debug_log("FHTW Usr: " + std::to_string(usr.is_fhtw_user()), 1);
 
 		login_system.login(usr);
+
+		appcontext::debug_log("End [LOGIN] Protocol");
 	} catch (std::exception& ex) {
 		// An error occurred
 		std::cout << ex.what() << std::endl;
@@ -264,9 +259,11 @@ void smtpservice::logout() {
 
 	// Try to log the user out
 	try {
+		appcontext::debug_log("Start [LOGOUT] Protocol");
 		if (!login_system.logout(usr)) {
-			std::cout << "(DM) LOGOUT Protocol: Not able to logout" << std::endl;
+			appcontext::debug_log("Not able to logout", 1);
 		}
+		appcontext::debug_log("End [LOGOUT] Protocol");
 	} catch (std::exception& ex) {
 		// An error occurred
 		std::cout << ex.what() << std::endl;
@@ -287,11 +284,10 @@ void smtpservice::send() {
 		mail.set_receiver(in.readline());
 		mail.set_subject(in.readline());
 
-		if (debug) {
-			std::cout << "(DM) SEND Protocol: " << mail.get_sender() << std::endl;
-			std::cout << "(DM) SEND Protocol: " << mail.get_receiver() << std::endl;
-			std::cout << "(DM) SEND Protocol: " << mail.get_subject() << std::endl;
-		}
+		appcontext::debug_log("Start [SEND] Protocol");
+		appcontext::debug_log("Sender: " + mail.get_sender(), 1);
+		appcontext::debug_log("Receiver: " + mail.get_receiver(), 1);
+		appcontext::debug_log("Subject: " + mail.get_subject(), 1);
 
 		// Read message until the char sequence "\n.\n" occurs
 		std::stringstream message;
@@ -314,28 +310,25 @@ void smtpservice::send() {
 		}
 		mail.set_message(final_msg);
 
+		appcontext::debug_log("Finished reading mail message", 1);
+
 		// Read attachments protocol
 		uint8_t num_attachments = in.readbyte();
-
-		// Print number of attachments whenever debug outputs are enabled
-		if (debug) {
-			std::cout << "(DM)  -> SEND Protocol: Num Attachments: " << unsigned(num_attachments) << std::endl;
-		}
+		appcontext::debug_log("Number of attachments to read: " + std::to_string(unsigned(num_attachments)), 1);
 		for (uint8_t i = 0; i < num_attachments; i++) {
 			std::string name = in.readline();
 
 			uint64_t num_bytes = in.readuint64();
 
-			// Print debug outputs
-			if (debug) {
-				std::cout << "(DM)  -> SEND Protocol: Attachment Name: " << name << std::endl;
-				std::cout << "(DM)  -> SEND Protocol: Attachment Size: " << unsigned(num_bytes) << std::endl;
-			}
+			// Print debug log
+			appcontext::debug_log("Attachment \"" + name + "\" with size (in bytes): " + std::to_string(unsigned(num_bytes)), 2);
 
+			// Read data
 			std::shared_ptr<uint8_t> sp(new uint8_t[num_bytes], std::default_delete<uint8_t[]>());
 			uint8_t* bytes = sp.get();
 			in.readbytesfull(bytes, num_bytes);
 
+			// Create attachment
 			attachment att;
 			att.set_name(name);
 			att.set_data_ptr(sp);
@@ -345,6 +338,8 @@ void smtpservice::send() {
 
 		// Save E-Mail
 		mps.save_mail(mail);
+
+		appcontext::debug_log("End [SEND] Protocol");
 	} catch (std::exception& ex) {
 		// An error occurred
 		std::cout << ex.what() << std::endl;
@@ -364,10 +359,9 @@ void smtpservice::att() {
 		std::string username = usr.get_username();
 		int msg_num = atoi(in.readline().c_str());
 
-		if (debug) {
-			std::cout << "(DM) ATT Protocol: " << username << std::endl;
-			std::cout << "(DM) ATT Protocol: " << msg_num << std::endl;
-		}
+		appcontext::debug_log("Start [ATT] Protocol");
+		appcontext::debug_log("Username: " + username, 1);
+		appcontext::debug_log("Message ID: " + std::to_string(msg_num), 1);
 
 		// Load mail
 		email mail = mps.load_mail(username, msg_num);
@@ -377,19 +371,15 @@ void smtpservice::att() {
 
 		// Send attachments
 		in.writebyte((uint8_t) mail.get_attachments().size());
-		if (debug) {
-			std::cout << "(DM)  -> ATT Protocol: Num Attachments: " << unsigned(mail.get_attachments().size()) << std::endl;
-		}
+		appcontext::debug_log("Number of attachments: " + std::to_string(unsigned(mail.get_attachments().size())), 1);
 		for (attachment att : mail.get_attachments()) {
-			if (debug) {
-				std::cout << "(DM)  -> ATT Protocol: Attachment Name: " << att.get_name() << std::endl;
-				std::cout << "(DM)  -> ATT Protocol: Attachment Size: " << unsigned(att.get_size()) << std::endl;
-			}
+			appcontext::debug_log("Attachment \"" + att.get_name() + "\" with size (in bytes): " + std::to_string(unsigned(att.get_size())), 2);
 
 			in.writeline(att.get_name() + '\n');
 			in.writeuint64(att.get_size());
 			in.writebytes(att.get_data(), (int) att.get_size());
 		}
+		appcontext::debug_log("End [ATT] Protocol");
 	} catch(std::exception& ex) {
 		std::cout << ex.what() << std::endl;
 		try_send_error(in);
@@ -404,9 +394,9 @@ void smtpservice::list() {
 		std::string username = usr.get_username();
 		std::vector<email> mails = mps.load_user_mails(username);
 
-		if (debug) {
-			std::cout << "(DM) LIST Protocol: " << username << std::endl;
-		}
+		appcontext::debug_log("Start [LIST] Protocol");
+		appcontext::debug_log("Username: " + username, 1);
+		appcontext::debug_log("Number of mails available: " + std::to_string(mails.size()), 1);
 
 		// List total amount of messages
 		std::stringstream ss;
@@ -415,10 +405,13 @@ void smtpservice::list() {
 
 		// List all messages with numbers
 		for (email current : mails) {
+			appcontext::debug_log(current.get_subject(), 2);
 			ss.str(std::string());
 			ss << current.get_subject() << '\n';
 			in.writeline(ss.str());
 		}
+
+		appcontext::debug_log("End [LIST] Protocol");
 	} catch(std::exception& ex) {
 		std::cout << ex.what() << std::endl;
 		try_send_error(in);
@@ -433,10 +426,9 @@ void smtpservice::read() {
 		std::string username = usr.get_username();
 		int msg_num = atoi(in.readline().c_str());
 
-		if (debug) {
-			std::cout << "(DM) READ Protocol: " << username << std::endl;
-			std::cout << "(DM) READ Protocol: " << msg_num << std::endl;
-		}
+		appcontext::debug_log("Start [READ] Protocol");
+		appcontext::debug_log("Username: " + username, 1);
+		appcontext::debug_log("E-Mail ID: " + std::to_string(msg_num), 1);
 
 		// Load mail
 		email mail = mps.load_mail(username, msg_num);
@@ -450,6 +442,8 @@ void smtpservice::read() {
 		ss << mail.get_message();
 		ss << std::endl;
 		in.writeline(ss.str());
+
+		appcontext::debug_log("End [READ] Protocol");
 	} catch(std::exception& ex) {
 		std::cout << ex.what() << std::endl;
 		try_send_error(in);
@@ -464,10 +458,9 @@ void smtpservice::del() {
 		std::string username = usr.get_username();
 		int msg_num = atoi(in.readline().c_str());
 
-		if (debug) {
-			std::cout << "(DM) DEL Protocol: " << username << std::endl;
-			std::cout << "(DM) DEL Protocol: " << msg_num << std::endl;
-		}
+		appcontext::debug_log("Start [DEL] Protocol");
+		appcontext::debug_log("Username: " + username, 1);
+		appcontext::debug_log("E-Mail ID: " + std::to_string(msg_num), 1);
 
 		// Delete mail
 		if (mps.delete_mail(username, msg_num)) {
@@ -475,6 +468,8 @@ void smtpservice::del() {
 		} else {
 			try_send_error(in);
 		}
+
+		appcontext::debug_log("End [DEL] Protocol");
 	} catch(std::exception& ex) {
 		std::cout << ex.what() << std::endl;
 		try_send_error(in);
@@ -488,9 +483,7 @@ void smtpservice::quit() {
 	try {
 		socket->get_stream().writeline("Disconnected from the server!\n");
 	} catch (std::exception& ex) {
-		if (debug) {
-			std::cout << "(DM) Socket already closed: " << ex.what() << std::endl;
-		}
+		std::cout << "Socket already closed: " << ex.what() << std::endl;
 	}
 }
 
@@ -518,9 +511,14 @@ void smtpservice::try_send_error(stream& in) {
 
 
 void smtpservice::serialize_blacklist() {
-	if (debug) {
-		std::cout << "(DM) Serialize blacklist" << std::endl;
-	}
+	appcontext::debug_log("Serializing IP Blacklist");
 	raiilock lck(smtpservice::login_attempts_mutex);
 	appcontext::serialize_blacklist(mps);
+}
+
+
+void smtpservice::release_resources() {
+	socket->close();
+	delete socket;
+	serialize_blacklist();
 }
