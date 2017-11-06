@@ -138,9 +138,7 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 				appcontext::debug_log("IP address (" + ip + ":" + std::to_string(port) + ") is temporarily blocked for " + std::to_string(timeout - diff) + " seconds", 1);
 				try_send_error(s);
 				quit();
-				con_sock->close();
-				delete con_sock;
-				serialize_blacklist();
+				release_resources();
 				return;
 			}
 
@@ -189,14 +187,12 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 
 		// Start correct mail protocol
 		run_smtp_protocols(line);
-	} while (line != "quit");
+	} while (line != "quit" || line != "QUIT");
 
 	// Closing the socket
 	quit();
 	std::cout << "Closing socket ID-" << con_sock->get_handler_id() << " from " << ip << ":" << port << std::endl;
-	con_sock->close();
-	delete con_sock;
-	serialize_blacklist();
+	release_resources();
 }
 
 
