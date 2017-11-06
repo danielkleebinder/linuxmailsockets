@@ -22,6 +22,7 @@ using namespace std;
 int main (int argc, char **argv) {
   int create_socket;
   char buffer[BUF];
+  char * username;
   struct sockaddr_in address;
   int size = 0;
   bool quit = false;
@@ -68,13 +69,25 @@ int main (int argc, char **argv) {
         printf("%s",buffer);
      }
   }
+
+
   else
   {
      perror("Connect error - no server available");
      return EXIT_FAILURE;
   }
+
+  char connectionok[5];
+  readline(connectionok,create_socket,5);
+  if(!((connectionok[0] == 'O') & (connectionok[1] == 'K')))
+  {
+    printf("error while connecting\n");
+    close(create_socket);
+    return 0;
+  }
+
   //LOGIN:
-  while(c_login(create_socket) == 0)
+  while((username = c_login(create_socket)) == NULL)
   {
     char input[10];
     printf("do you want to quit? y/n\n" );
@@ -90,6 +103,7 @@ int main (int argc, char **argv) {
 char test[10];
   do
   {
+    printf("You are logged in as %s\n", username);
     print_options();
     printf("Option > ");
     fgets(test,10,stdin);
@@ -103,6 +117,7 @@ char test[10];
     //the problem was that scanf leaves a newline in the buffer and the next
     //fgets reads the newline
     switch (options) {
+      printf("you are loged in as %s\n", username);
       case 1: c_send(create_socket);
               break;
       case 2: c_list(create_socket);
@@ -112,7 +127,6 @@ char test[10];
       case 4: c_del(create_socket);
               break;
       case 5: c_logout(create_socket);
-              //goto LOGIN;
               quit = true;
               close(create_socket);
               break;
@@ -123,6 +137,6 @@ char test[10];
       default: printf("Wrong option please enter a valid number\n");
     }
   }while(!quit);
-
+  free(username);
   return EXIT_SUCCESS;
 }

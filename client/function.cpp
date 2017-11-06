@@ -65,13 +65,15 @@ void readline(char* buffer,int create_socket,int max)
 }
 
 
-int c_login(int create_socket)
+char* c_login(int create_socket)
 {
-  char username[20];
+  char* username;
   char password[BUF];
   char response[5];
   int trys = 1;
   static struct termios oldt, newt;
+
+  username = (char*) malloc(sizeof(char)*(20));
 
   /*saving the old settings of STDIN_FILENO and copy settings for resetting*/
   tcgetattr( STDIN_FILENO, &oldt);
@@ -95,7 +97,7 @@ int c_login(int create_socket)
         printf("What is your password\n");
         fgets(password, BUF, stdin);
         fflush(stdin);
-      } while(!(strlen(password) > 0));
+      } while(!(strlen(password) > 1));
       password[strlen(password)-1] = '\0';
 
       /*resetting our old STDIN_FILENO*/
@@ -117,16 +119,17 @@ int c_login(int create_socket)
       if(trys > 3)
       {
         printf("Maximum numbers of trys, plz try again later\n");
-        return 0;
+        free(username);
+        return NULL;
       }
   } while(!((response[0] = 'O') && (response[1] == 'K')) && trys < 4);
-  return 1;
+  return username;
 }
 
 void c_logout(int create_socket)
 {
   send(create_socket, "LOGOUT\n", 7, 0);
-  //c_quit(create_socket);
+  c_quit(create_socket);
 }
 
 /*
@@ -151,7 +154,12 @@ int c_inputattachment(int create_socket,stack<char*> &stk)
     fgets(input,BUF,stdin);
     fflush(stdin);
 
-    if(input[0] == 'Q')
+    for(unsigned int i = 0; i < strlen(input);i++)
+    {
+      input[i] = tolower(input[i]);
+    }
+
+    if(input[0] == 'q')
     {
       break;
     }
@@ -176,6 +184,7 @@ int c_inputattachment(int create_socket,stack<char*> &stk)
 void c_sendattachment(int create_socket,stack<char*> &stk)
 {
   char* filename;
+  char* justfn;
   uint64_t filesize;
   //char filesize[BUF] = "";
   struct stat filestat;
@@ -189,14 +198,14 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
     //getting filename from the stack
     filename = stk.top();
     stk.pop();
+    justfn = basename(filename);
     if(filename == NULL)
     {
       printf("break trough filename\n");
       break;
     }
     //sending filename
-    printf("filename: %s\n", filename);
-    write(create_socket,filename,strlen(filename)+1);
+    write(create_socket,justfn,strlen(justfn)+1);
     //getting filesize
     if((fstatat(dirfd(current),filename,&filestat,0)) < 0)
     {
@@ -207,7 +216,6 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
       continue;
     }
     filesize = filestat.st_size;
-    printf("%ld\n", filesize);
     write(create_socket,&filesize,8);
 
     FILE *fp;
@@ -223,26 +231,39 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
   free(cwd);
 }
 
-void c_saveattachments(int create_socket)
+void c_saveattachments(int create_socket, char* given_number)
 {
-    //int size;
-    char number[BUF] = "";
+    int wasmalloc = 0;
+    char *number;
     char tosend[BUF] = "ATT\n";
+    char truefn[BUF] = "attachments/";
     char OK[10] = "";
     uint8_t numofatt;
     char filename[BUF];
     uint64_t filesize;
     uint8_t data;
-    //char * cwd;
-    //cwd = get_current_dir_name();
-    //DIR *current = opendir(cwd);
 
+    struct stat st = {0};
 
-    printf("Enter the message number you want to save the attacments from: ");
-    fgets(number, 8, stdin);
-    fflush(stdin);
+    if(stat("attachments",&st) == -1)
+    {
+      mkdir("attachments",0700);
+    }
+
+    if(given_number == NULL)
+    {
+      number = (char*) malloc(sizeof(char)*(20));
+      printf("Enter the message number you want to save the attachments from: ");
+      fgets(number, 8, stdin);
+      fflush(stdin);
+      wasmalloc = 1;
+    }
+    else
+    {
+      number = given_number;
+    }
+
     strcat(tosend, number);
-
     send(create_socket, tosend, strlen(tosend), 0);
 
     readline(OK, create_socket, 10);
@@ -264,16 +285,12 @@ void c_saveattachments(int create_socket)
     for(uint8_t i = 0; i < numofatt; i++)
     {
       readline(filename,create_socket,BUF);
-      printf("filename: %s\n", filename);
-      //if(filename[strlen(filename)-1] != '\n')
-      //{
-        filename[strlen(filename)-1] = '\0';
-      //}
-      
-      read(create_socket,&filesize,8);
-      printf("filesize: %ld\n", filesize);
+      filename[strlen(filename)-1] = '\0';
+      strcat(truefn,filename);
 
-      FILE * fp = fopen(filename,"wb");
+      read(create_socket,&filesize,8);
+
+      FILE * fp = fopen(truefn,"wb");
       for(uint64_t j = 0; j < filesize; j++)
       {
         read(create_socket,&data,1);
@@ -281,7 +298,10 @@ void c_saveattachments(int create_socket)
       }
       fclose(fp);
     }
-    //free(cwd);
+    if(wasmalloc == 1)
+    {
+      free(number);
+    }
 }
 
 /*
@@ -324,9 +344,6 @@ void c_send(int create_socket)
   }while(strcmp(message,".\n"));
 
   NumOfAtt = c_inputattachment(create_socket,stk);
-  printf("number of attachments: %d\n", NumOfAtt);
-  //sprintf(STRNOA,"%d",NumOfAtt);
-  //write(create_socket,STRNOA,strlen(STRNOA)+1);
   write(create_socket,&NumOfAtt,1);
 
   if(NumOfAtt > 0)
@@ -421,7 +438,7 @@ void c_read(int create_socket)
   fflush(stdin);
   if(input[0] == 'y')
   {
-    c_saveattachments(create_socket);
+    c_saveattachments(create_socket,number);
   }
   printf("\n\n");
 }
