@@ -24,7 +24,7 @@
 
 #define BUF 2048
 #define PORT 6543
-#define maxchunk 4096
+#define MAXCHUNK 4096
 
 using namespace std;
 
@@ -214,8 +214,8 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
     fp = fopen(filename,"rb");
 
     size_t size = 0;
-    uint8_t data[maxchunk];
-    while((size = fread(&data,sizeof(uint8_t),maxchunk,fp)) > 0)
+    uint8_t data[MAXCHUNK];
+    while((size = fread(data,sizeof(uint8_t),MAXCHUNK,fp)) > 0)
     {
       write(create_socket,data,size);
     }
@@ -295,11 +295,11 @@ void c_saveattachments(int create_socket, char* given_number)
       FILE * fp = fopen(truefn,"wb");
 
       /*
-      uint8_t data[maxchunk];
+      uint8_t data[MAXCHUNK];
       size_t size = 0;
       size_t writen = 0;
 
-      while((size = read(create_socket,data,maxchunk)) > 0)
+      while((size = read(create_socket,data,MAXCHUNK)) > 0)
       {
         printf("size: %ld\n", size);
         writen = fwrite(data,sizeof(uint8_t),size,fp);
@@ -503,7 +503,7 @@ void c_del(int create_socket)
 //quits the connection
 void c_quit(int create_socket)
 {
-  send(create_socket, "quit\n", 7, 0);
+  send(create_socket, "quit\n", 5, 0);
 }
 
 //prints the options
