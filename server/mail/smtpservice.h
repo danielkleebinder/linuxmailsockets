@@ -63,6 +63,7 @@ private:
 
 	user usr;
 	time_t timeout;
+	bool disconnected;
 
 	// Private send ok and send error methods
 	void try_send_ok(stream& in);

@@ -31,7 +31,7 @@ std::mutex smtpservice::login_attempts_mutex;
 
 // SMTP Service constructor
 smtpservice::smtpservice(net::csocket* socket, mailpoolservice& mps, loginsystem& ls)
-	: socket(socket), mps(mps), login_system(ls), timeout(300) {}
+	: socket(socket), mps(mps), login_system(ls), timeout(300), disconnected(false) {}
 
 smtpservice::~smtpservice() {}
 
@@ -106,9 +106,15 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 		return;
 	}
 
+	int spam_protection = 0;
+
 	// Send ok if the client was successfully conncted
 	try_send_ok(s);
 	do {
+		if (disconnected) {
+			break;
+		}
+
 		// Read line by line using new streaming and socket API.
 		// Rethrow any uncaught exceptions into the main procedure.
 		line = s.readline();
@@ -118,8 +124,15 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 
 		// Check if line is null or empty
 		if (line.empty()) {
+			spam_protection++;
+			if (spam_protection > 3) {
+				appcontext::debug_log("Forced disconnection for spam protection", 1);
+				try_send_error(s);
+				break;
+			}
 			continue;
 		}
+		spam_protection = 0;
 
 		// Login user before any other protocol can be executed
 		if (line == "LOGIN") {
@@ -137,9 +150,7 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 			if (blocked) {
 				appcontext::debug_log("IP address (" + ip + ":" + std::to_string(port) + ") is temporarily blocked for " + std::to_string(timeout - diff) + " seconds", 1);
 				try_send_error(s);
-				quit();
-				release_resources();
-				return;
+				break;
 			}
 
 			// Try user login
@@ -181,13 +192,11 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 		}
 
 		// Check if user is authenticated
-		if (!usr.is_logged_in()) {
-			continue;
+		if (usr.is_logged_in()) {
+			// Start correct mail protocol
+			run_smtp_protocols(line);
 		}
-
-		// Start correct mail protocol
-		run_smtp_protocols(line);
-	} while (line != "quit" || line != "QUIT");
+	} while (line != "quit" && line != "QUIT");
 
 	// Closing the socket
 	quit();
@@ -478,6 +487,7 @@ void smtpservice::del() {
 void smtpservice::quit() {
 	std::string username = usr.get_username().empty() ? "ANONYMOUS" : usr.get_username();
 	std::cout << "User \"" << username << "\" quits the mail server!" << std::endl;
+	disconnected = true;
 	try {
 		socket->get_stream().writeline("Disconnected from the server!\n");
 	} catch (std::exception& ex) {

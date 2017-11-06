@@ -135,23 +135,18 @@ int c_inputattachment(int create_socket,stack<char*> &stk)
   printf("Do you want to add attachments? y/n \n");
   fgets(input, 10, stdin);
   fflush(stdin);
-  if(!(input[0] == 'y' && input[1] == '\n'))
+  if(!((input[0] == 'y' || input[0] == 'Y') && input[1] == '\n'))
   {
     printf("No attachments are getting added\n");
     return 0;
   }
 
   do {
-    printf("Filename(relativer pfad)? Quit with Q\n");
+    printf("Filename (Relative Path, Use q to quit): ");
     fgets(input,BUF,stdin);
     fflush(stdin);
 
-    for(unsigned int i = 0; i < strlen(input);i++)
-    {
-      input[i] = tolower(input[i]);
-    }
-
-    if(input[0] == 'q')
+    if((input[0] == 'q' || input[0] == 'Q') && input[1] == '\n')
     {
       break;
     }
@@ -159,7 +154,7 @@ int c_inputattachment(int create_socket,stack<char*> &stk)
     input[strlen(input)-1] = '\0';
     if((fptr = fopen(input,"rb")) == NULL)
     {
-      printf("An error accured(mby the wrong filename?)\n");
+      printf("Can not open file. Please check if the spelling is correct!\n");
       continue;
     }
     else
@@ -169,7 +164,7 @@ int c_inputattachment(int create_socket,stack<char*> &stk)
       strncpy(test,input,2048);
       stk.push(test);
     }
-  } while(!(input[0] == 'Q'));
+  } while(true);
   return i;
 }
 
@@ -193,7 +188,7 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
     justfn = basename(filename);
     if(filename == NULL)
     {
-      printf("break trough filename\n");
+      printf("break through filename\n");
       break;
     }
     //sending filename
@@ -201,9 +196,9 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
     //getting filesize
     if((fstatat(dirfd(current),filename,&filestat,0)) < 0)
     {
-      printf("an error accured for the file %s\n", filename);
+      printf("An error occurred while reading the file %s\n", filename);
       int errsv = errno;
-      printf("errorcode was: %d\n", errsv);
+      printf("Errorcode: %d\n", errsv);
       //write(create_socket,filename,strlen(filename)+1);
       continue;
     }
