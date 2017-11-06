@@ -216,7 +216,6 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
     {
       uint8_t data = 0;
       fread(&data,sizeof(uint8_t),1,fp);
-      printf("data that is getting sent: %c\n", data);
       write(create_socket,&data,1);
     }
     fclose(fp);

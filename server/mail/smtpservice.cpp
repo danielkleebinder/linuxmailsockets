@@ -14,6 +14,7 @@
 #include "mailpoolservice.h"
 
 #include <string>
+#include <string.h>
 #include <iostream>
 #include <thread>
 #include <stdexcept>
@@ -134,7 +135,7 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 			// Skip login if the user is blocked
 			if (blocked) {
 				if (debug) {
-					std::cout << "  -> (DM) IP address (" << ip << ":" << port << ") is temporarily blocked for " << (timeout - diff) << " seconds" << std::endl;
+					std::cout << "(DM)  -> IP address (" << ip << ":" << port << ") is temporarily blocked for " << (timeout - diff) << " seconds" << std::endl;
 				}
 				try_send_error(s);
 				quit();
@@ -146,6 +147,10 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 
 			// Try user login
 			bool login_success = login();
+
+			if (debug) {
+				std::cout << "(DM)  -> Login successful: " << login_success << std::endl;
+			}
 
 			// Check if ip entry already exists
 			if (!contains_ip) {
@@ -177,7 +182,7 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 			if (debug) {
 				raiilock lck(smtpservice::login_attempts_mutex);
 				appcontext::attempt_t* at = (*appcontext::get_blacklist())[ip].get();
-				std::cout << "  -> (DM) Login Attempt by " << ip << ":" << port << " - Nr.: " << at->num_attempts << ", Last: " << at->last_sec << std::endl;
+				std::cout << "(DM)  -> Login Attempt by " << ip << ":" << port << " - Nr.: " << at->num_attempts << ", Last: " << at->last_sec << std::endl;
 			}
 		}
 
@@ -311,17 +316,26 @@ void smtpservice::send() {
 
 		// Read attachments protocol
 		uint8_t num_attachments = in.readbyte();
+
+		// Print number of attachments whenever debug outputs are enabled
+		if (debug) {
+			std::cout << "(DM)  -> SEND Protocol: Num Attachments: " << unsigned(num_attachments) << std::endl;
+		}
 		for (uint8_t i = 0; i < num_attachments; i++) {
 			std::string name = in.readline();
 
 			uint64_t num_bytes = in.readuint64();
-			printf("filesize: %ld\n", num_bytes);
+
+			// Print debug outputs
+			if (debug) {
+				std::cout << "(DM)  -> SEND Protocol: Attachment Name: " << name << std::endl;
+				std::cout << "(DM)  -> SEND Protocol: Attachment Size: " << unsigned(num_bytes) << std::endl;
+			}
+
 			std::shared_ptr<uint8_t> sp(new uint8_t[num_bytes], std::default_delete<uint8_t[]>());
 			uint8_t* bytes = sp.get();
-			for(uint64_t i = 0; i < num_bytes;i++)
-			{
-				bytes[i] = in.readbyte();
-			}
+			in.readbytesfull(bytes, num_bytes);
+
 			attachment att;
 			att.set_name(name);
 			att.set_data_ptr(sp);
@@ -363,7 +377,15 @@ void smtpservice::att() {
 
 		// Send attachments
 		in.writebyte((uint8_t) mail.get_attachments().size());
+		if (debug) {
+			std::cout << "(DM)  -> ATT Protocol: Num Attachments: " << unsigned(mail.get_attachments().size()) << std::endl;
+		}
 		for (attachment att : mail.get_attachments()) {
+			if (debug) {
+				std::cout << "(DM)  -> ATT Protocol: Attachment Name: " << att.get_name() << std::endl;
+				std::cout << "(DM)  -> ATT Protocol: Attachment Size: " << unsigned(att.get_size()) << std::endl;
+			}
+
 			in.writeline(att.get_name() + '\n');
 			in.writeuint64(att.get_size());
 			in.writebytes(att.get_data(), (int) att.get_size());

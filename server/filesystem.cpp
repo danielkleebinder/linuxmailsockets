@@ -7,7 +7,6 @@
 
 
 #include "raiilock.h"
-#include "mail/attachment.h"
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -137,14 +136,14 @@ namespace fs {
 	 *
 	 * @param file File to write bytes to.
 	 * @param bytes Bytes to be written.
+	 * @param n Number of bytes
 	 * @return True if the byte array was successfully written.
 	 */
-	bool file_write_bytes(std::string file, attachment &att) {
-		uint8_t* bytes = att.get_data();
+	bool file_write_bytes(std::string file, uint8_t* bytes, uint64_t n) {
 		raiilock s1(_mutex);
 		std::ofstream out;
 		out.open(file, std::ofstream::out);
-		out.write((char*) bytes, att.get_size());
+		out.write((char*) bytes, n);
 		out.close();
 		return true;
 	}

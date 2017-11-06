@@ -80,20 +80,25 @@ void stream::writeline(std::string str) {
 	}
 }
 
+
 uint8_t stream::readbyte() {
 	uint8_t result;
-	//readbytes(&result, 1);
-	read(_handler,&result,1);
+	readbytes(&result, 1);
 	return result;
 }
 
 
-void stream::readbytes(uint8_t* bytes, int n) {
-	ssize_t c = read(_handler, bytes, n);
-	if (c < 1) {
-		throw std::runtime_error("Error while reading bytes from the stream");
-	}
+ssize_t stream::readbytes(uint8_t* bytes, int n) {
+	return read(_handler, bytes, n);
+}
 
+
+ssize_t stream::readbytesfull(uint8_t* bytes, int n) {
+	ssize_t bytesread = 0, c;
+	while ((c = readbytes(bytes + bytesread, n - bytesread)) > 0) {
+		bytesread += c;
+	}
+	return bytesread;
 }
 
 
@@ -102,38 +107,34 @@ void stream::writebyte(uint8_t b) {
 }
 
 
-void stream::writebytes(uint8_t* bytes, int n) {
-	writebytes(bytes, 0, n);
+ssize_t stream::writebytes(uint8_t* bytes, int n) {
+	return writebytes(bytes, 0, n);
 }
 
 
-void stream::writebytes(uint8_t* bytes, int offset, int size) {
+ssize_t stream::writebytes(uint8_t* bytes, int offset, int size) {
 	// uint8_t is exactly one byte, no need for sizeof operator
-	ssize_t n = write(_handler, bytes + offset, size);
-	if (n < size) {
-		throw std::runtime_error("Error while writing bytes to the stream");
-	}
+	return write(_handler, bytes + offset, size);
 }
 
 
 uint16_t stream::readuint16() {
 	uint16_t result;
-	read(_handler,&result,2);
+	readbytes((uint8_t*) &result, 2);
 	return result;
 }
 
 
 uint32_t stream::readuint32() {
 	uint32_t result;
-	read(_handler,&result,4);
+	readbytes((uint8_t*) &result, 4);
 	return result;
 }
 
 
 uint64_t stream::readuint64() {
 	uint64_t result;
-	//readbytes(&result, 1);
-	read(_handler,&result,8);
+	readbytes((uint8_t*) &result, 8);
 	return result;
 
 }

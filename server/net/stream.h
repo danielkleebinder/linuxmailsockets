@@ -26,10 +26,11 @@ public:
 
 	// Read/write as byte stream
 	uint8_t readbyte();
-	void readbytes(uint8_t* bytes, int n);
+	ssize_t readbytes(uint8_t* bytes, int n);
+	ssize_t readbytesfull(uint8_t* bytes, int n);
 	void writebyte(uint8_t b);
-	void writebytes(uint8_t* bytes, int n);
-	void writebytes(uint8_t* bytes, int offset, int size);
+	ssize_t writebytes(uint8_t* bytes, int n);
+	ssize_t writebytes(uint8_t* bytes, int offset, int size);
 
 	// Read/write primitive data types
 	uint16_t readuint16();

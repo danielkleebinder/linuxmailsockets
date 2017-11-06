@@ -89,7 +89,7 @@ bool mailpoolservice::save_mail(email& mail) {
 	// Write Attachments
 	for (attachment current : mail.get_attachments()) {
 		std::string attachment_file = concat_dir(attadir, current.get_name());
-		fs::file_write_bytes(attachment_file, current);
+		fs::file_write_bytes(attachment_file, current.get_data(), current.get_size());
 	}
 	return true;
 }

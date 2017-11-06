@@ -21,7 +21,7 @@ namespace fs {
 	bool make_file(std::string file);
 	bool clear_file(std::string file);
 	bool file_append_text(std::string file, std::string text, bool linefeed);
-	bool file_write_bytes(std::string file, attachment &ATT);
+	bool file_write_bytes(std::string file, uint8_t* bytes, uint64_t n);
 
 	std::vector<std::string> list_files(std::string dir);
 	bool move_dir(std::string old_dir, std::string new_dir);
