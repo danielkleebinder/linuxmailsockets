@@ -106,6 +106,8 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 		return;
 	}
 
+	// Send ok if the client was successfully conncted
+	try_send_ok(s);
 	do {
 		// Read line by line using new streaming and socket API.
 		// Rethrow any uncaught exceptions into the main procedure.
