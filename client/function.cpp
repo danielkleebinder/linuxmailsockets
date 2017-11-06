@@ -24,6 +24,7 @@
 
 #define BUF 2048
 #define PORT 6543
+#define maxchunk 4096
 
 using namespace std;
 
@@ -70,7 +71,6 @@ char* c_login(int create_socket)
   char* username;
   char password[BUF];
   char response[5];
-  int trys = 1;
   static struct termios oldt, newt;
 
   username = (char*) malloc(sizeof(char)*(20));
@@ -110,19 +110,11 @@ char* c_login(int create_socket)
 
       read(create_socket, response,5);
       printf("response: %s\n", response);
-      trys++;
       if(!((response[0] = 'O') && (response[1] == 'K')))
       {
         printf("An error accured plz try again\n");
       }
-
-      if(trys > 3)
-      {
-        printf("Maximum numbers of trys, plz try again later\n");
-        free(username);
-        return NULL;
-      }
-  } while(!((response[0] = 'O') && (response[1] == 'K')) && trys < 4);
+  } while(!((response[0] = 'O') && (response[1] == 'K')));
   return username;
 }
 
@@ -220,12 +212,23 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
 
     FILE *fp;
     fp = fopen(filename,"rb");
+
+    size_t size = 0;
+    uint8_t data[maxchunk];
+    while((size = fread(&data,sizeof(uint8_t),maxchunk,fp)) > 0)
+    {
+      write(create_socket,data,size);
+    }
+
+    /*
+
     for(uint64_t  i = 0; i < filesize; i++)
     {
       uint8_t data = 0;
       fread(&data,sizeof(uint8_t),1,fp);
       write(create_socket,&data,1);
     }
+    */
     fclose(fp);
   }
   free(cwd);
@@ -236,12 +239,10 @@ void c_saveattachments(int create_socket, char* given_number)
     int wasmalloc = 0;
     char *number;
     char tosend[BUF] = "ATT\n";
-    char truefn[BUF] = "attachments/";
     char OK[10] = "";
     uint8_t numofatt;
     char filename[BUF];
     uint64_t filesize;
-    uint8_t data;
 
     struct stat st = {0};
 
@@ -286,16 +287,33 @@ void c_saveattachments(int create_socket, char* given_number)
     {
       readline(filename,create_socket,BUF);
       filename[strlen(filename)-1] = '\0';
+      char truefn[BUF] = "attachments/";
       strcat(truefn,filename);
 
       read(create_socket,&filesize,8);
 
       FILE * fp = fopen(truefn,"wb");
+
+      /*
+      uint8_t data[maxchunk];
+      size_t size = 0;
+      size_t writen = 0;
+
+      while((size = read(create_socket,data,maxchunk)) > 0)
+      {
+        printf("size: %ld\n", size);
+        writen = fwrite(data,sizeof(uint8_t),size,fp);
+        printf("writen: %ld\n", writen);
+      }
+      */
+
+      uint8_t data;
       for(uint64_t j = 0; j < filesize; j++)
       {
         read(create_socket,&data,1);
         fwrite(&data,1,1,fp);
       }
+
       fclose(fp);
     }
     if(wasmalloc == 1)
