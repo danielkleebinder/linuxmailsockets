@@ -128,7 +128,7 @@ char* c_login(int create_socket)
 void c_logout(int create_socket)
 {
   send(create_socket, "LOGOUT\n", 7, 0);
-  c_quit(create_socket);
+  printf("logged out. plz log back in\n" );
 }
 
 /*

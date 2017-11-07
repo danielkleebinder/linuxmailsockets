@@ -29,6 +29,7 @@ int main (int argc, char **argv) {
   int options;
   int port = 6543;
   int c;
+  bool loggedin = false;
 
   while ((c = getopt(argc, argv, "p:")) != EOF) {
     switch (c) {
@@ -86,23 +87,31 @@ int main (int argc, char **argv) {
     return 0;
   }
 
-  //LOGIN:
-  while((username = c_login(create_socket)) == NULL)
-  {
-    char input[10];
-    printf("do you want to quit? y/n\n" );
-    fgets(input,10,stdin);
-    fflush(stdin);
 
-    if(input[0] == 'y')
-    {
-      c_quit(create_socket);
-      return EXIT_SUCCESS;
-    }
-  }
+
 char test[10];
   do
   {
+    //LOGIN:
+    if(loggedin == false)
+    {
+      while((username = c_login(create_socket)) == NULL)
+      {
+        char input[10];
+        printf("do you want to quit? y/n\n" );
+        fgets(input,10,stdin);
+        fflush(stdin);
+
+        if((input[0] == 'y') & (input[1] == '\n'))
+        {
+          c_quit(create_socket);
+          close(create_socket);
+          return EXIT_SUCCESS;
+        }
+      }
+      loggedin = true;
+    }
+
     printf("You are logged in as %s\n", username);
     print_options();
     printf("Option > ");
@@ -117,7 +126,6 @@ char test[10];
     //the problem was that scanf leaves a newline in the buffer and the next
     //fgets reads the newline
     switch (options) {
-      printf("you are loged in as %s\n", username);
       case 1: c_send(create_socket);
               break;
       case 2: c_list(create_socket);
@@ -127,8 +135,7 @@ char test[10];
       case 4: c_del(create_socket);
               break;
       case 5: c_logout(create_socket);
-              quit = true;
-              close(create_socket);
+              loggedin = false;
               break;
       case 6: c_quit(create_socket);
               quit = true;

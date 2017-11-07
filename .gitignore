@@ -10,10 +10,13 @@
 client/attachments
 server/mailpool
 *test*
-# Prerequisites
-*.d
 client/mailclient
 server/mailserver
+*.jpg
+*.mp4
+
+# Prerequisites
+*.d
 
 # Compiled Object files
 *.slo
