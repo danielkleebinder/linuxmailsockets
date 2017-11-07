@@ -65,7 +65,14 @@ void readline(char* buffer,int create_socket,int max)
   buffer[i] = '\0';
 }
 
-
+/*
+function c_login
+  @param:
+    create_socket: the network socket
+  @return:
+    returns the username, null if no username was entered
+Sends the username and the Password to the server.
+*/
 char* c_login(int create_socket)
 {
   char* username;
@@ -125,8 +132,15 @@ void c_logout(int create_socket)
 }
 
 /*
+function c_inputattachment
+  @param:
+    create_socket: the network socket
+    stk: stk in which the attachment names are getting saved
+  @return:
+    returns the number of attachments that where added to the stack
+the user types in filenames, it's getting checked if the filename
+exists, and if it does it gets added to the stack
 */
-
 int c_inputattachment(int create_socket,stack<char*> &stk)
 {
   FILE *fptr;
@@ -168,6 +182,13 @@ int c_inputattachment(int create_socket,stack<char*> &stk)
   return i;
 }
 
+/*
+function c_sendattachment
+  @param:
+    create_socket: the network socket
+    stk: stk where the filenames are saved
+sends the attachments with name and lenght to the server
+*/
 void c_sendattachment(int create_socket,stack<char*> &stk)
 {
   char* filename;
@@ -186,11 +207,6 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
     filename = stk.top();
     stk.pop();
     justfn = basename(filename);
-    if(filename == NULL)
-    {
-      printf("break through filename\n");
-      break;
-    }
     //sending filename
     write(create_socket,justfn,strlen(justfn)+1);
     //getting filesize
@@ -199,9 +215,9 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
       printf("An error occurred while reading the file %s\n", filename);
       int errsv = errno;
       printf("Errorcode: %d\n", errsv);
-      //write(create_socket,filename,strlen(filename)+1);
       continue;
     }
+    //sending filesize
     filesize = filestat.st_size;
     write(create_socket,&filesize,8);
 
@@ -210,25 +226,26 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
 
     size_t size = 0;
     uint8_t data[MAXCHUNK];
+    
+    //sends the attachments
     while((size = fread(data,sizeof(uint8_t),MAXCHUNK,fp)) > 0)
     {
       write(create_socket,data,size);
     }
-
-    /*
-
-    for(uint64_t  i = 0; i < filesize; i++)
-    {
-      uint8_t data = 0;
-      fread(&data,sizeof(uint8_t),1,fp);
-      write(create_socket,&data,1);
-    }
-    */
+    
     fclose(fp);
   }
   free(cwd);
 }
 
+/*
+function c_saveattachments
+  @param:
+    create_socket: the network socket
+    given_number: the number of the mail where the user
+    wants to have the attachment.
+Saves the attachments from the server for a given mail
+*/
 void c_saveattachments(int create_socket, char* given_number)
 {
     int wasmalloc = 0;
@@ -241,11 +258,13 @@ void c_saveattachments(int create_socket, char* given_number)
 
     struct stat st = {0};
 
+    //creating dir attachment if it does not exist
     if(stat("attachments",&st) == -1)
     {
       mkdir("attachments",0700);
     }
 
+    //checking if the a mailnumber was given
     if(given_number == NULL)
     {
       number = (char*) malloc(sizeof(char)*(20));
@@ -268,16 +287,16 @@ void c_saveattachments(int create_socket, char* given_number)
     {
       printf("Error\n");
       return;
-    }
-
+    }  
+    
     read(create_socket,&numofatt,1);
-
+    
     if(numofatt <= 0)
     {
       printf("no attachments \n");
       return;
     }
-
+    
     for(uint8_t i = 0; i < numofatt; i++)
     {
       readline(filename,create_socket,BUF);
@@ -288,19 +307,6 @@ void c_saveattachments(int create_socket, char* given_number)
       read(create_socket,&filesize,8);
 
       FILE * fp = fopen(truefn,"wb");
-
-      /*
-      uint8_t data[MAXCHUNK];
-      size_t size = 0;
-      size_t writen = 0;
-
-      while((size = read(create_socket,data,MAXCHUNK)) > 0)
-      {
-        printf("size: %ld\n", size);
-        writen = fwrite(data,sizeof(uint8_t),size,fp);
-        printf("writen: %ld\n", writen);
-      }
-      */
 
       uint8_t data;
       for(uint64_t j = 0; j < filesize; j++)
