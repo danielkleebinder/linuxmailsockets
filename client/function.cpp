@@ -248,8 +248,10 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
     }
 
     fclose(fp);
+	free(filename);
   }
   free(cwd);
+  free(current);
 }
 
 /*
