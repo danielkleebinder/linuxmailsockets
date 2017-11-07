@@ -7,9 +7,13 @@
 /bin
 /obj
 *make*
-
+client/attachments
+server/mailpool
+*test*
 # Prerequisites
 *.d
+client/mailclient
+server/mailserver
 
 # Compiled Object files
 *.slo

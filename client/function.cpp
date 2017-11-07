@@ -226,13 +226,13 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
 
     size_t size = 0;
     uint8_t data[MAXCHUNK];
-    
+
     //sends the attachments
     while((size = fread(data,sizeof(uint8_t),MAXCHUNK,fp)) > 0)
     {
       write(create_socket,data,size);
     }
-    
+
     fclose(fp);
   }
   free(cwd);
@@ -287,16 +287,16 @@ void c_saveattachments(int create_socket, char* given_number)
     {
       printf("Error\n");
       return;
-    }  
-    
+    }
+
     read(create_socket,&numofatt,1);
-    
+
     if(numofatt <= 0)
     {
       printf("no attachments \n");
       return;
     }
-    
+
     for(uint8_t i = 0; i < numofatt; i++)
     {
       readline(filename,create_socket,BUF);
@@ -307,13 +307,30 @@ void c_saveattachments(int create_socket, char* given_number)
       read(create_socket,&filesize,8);
 
       FILE * fp = fopen(truefn,"wb");
-
+/*
       uint8_t data;
       for(uint64_t j = 0; j < filesize; j++)
       {
         read(create_socket,&data,1);
         fwrite(&data,1,1,fp);
       }
+*/
+      size_t size = 0;
+      size_t totalsize = 0;
+      uint64_t chunk_to_read = MAXCHUNK;
+      uint8_t data[MAXCHUNK];
+
+      do
+      {
+        //checking how many chunks to read
+        chunk_to_read = (totalsize + MAXCHUNK) > filesize ?
+        filesize - totalsize : MAXCHUNK;
+
+        size = read(create_socket,data,chunk_to_read);
+        fwrite(data,sizeof(uint8_t),size,fp);
+        totalsize = totalsize + size;
+      }while(totalsize < filesize);
+
 
       fclose(fp);
     }
