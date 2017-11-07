@@ -22,7 +22,7 @@
 class smtpservice {
 public:
 	smtpservice(net::csocket* socket, mailpoolservice& mps, loginsystem& ls);
-	~smtpservice();
+	virtual ~smtpservice();
 
 	// Starts the SMTP protocol in an own thread
 	void start_forked_service();

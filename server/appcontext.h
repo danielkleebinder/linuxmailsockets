@@ -1,11 +1,13 @@
 #ifndef APPCONTEXT_H
 #define APPCONTEXT_H
 
+#include "mail/smtpservice.h"
 #include "mail/mailpoolservice.h"
 #include "net/serversocket.h"
 
 #include <memory>
 #include <map>
+#include <vector>
 #include <string>
 
 
@@ -31,6 +33,7 @@ public:
 
 	static net::serversocket* get_serversocket();
 	static std::map<std::string, std::shared_ptr<struct attempt_t>>* get_blacklist();
+	static std::vector<smtpservice*>* get_smtpservices();
 
 	static void set_debug_mode(bool debug_mode);
 	static bool is_debug_mode();
@@ -47,8 +50,7 @@ private:
 	static bool debug_mode;
 	static net::serversocket* ss;
 	static std::map<std::string, std::shared_ptr<struct attempt_t>>* blacklist;
-
-
+	static std::vector<smtpservice*>* smtpservices;
 };
 
 #endif // APPCONTEXT_H

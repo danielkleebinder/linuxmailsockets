@@ -19,6 +19,15 @@
 
 using namespace std;
 
+
+void help(char* program_name) {
+	printf("Usage: %s ServerAddress [-p port]\n\n", program_name);
+	printf("This client is by default running on port 6543. To change\n");
+    printf("this, use the [-p port] option.\n\n");
+}
+
+
+
 int main (int argc, char **argv) {
   int create_socket;
   char buffer[BUF];
@@ -31,12 +40,11 @@ int main (int argc, char **argv) {
   int c;
   bool loggedin = false;
 
+  char* program_name = argv[0];
   while ((c = getopt(argc, argv, "p:")) != EOF) {
     switch (c) {
       case '?':
-        printf("This client uses the 6543 port as a default\n");
-        printf("If you want to change that type -p and the port number");
-        printf("as a starting parameter\n");
+		help(program_name);
         exit(1);
         break;
       case 'p':
@@ -45,12 +53,13 @@ int main (int argc, char **argv) {
     }
   }
   if( argc < 2 ){
-     printf("Usage: %s ServerAdresse\n", argv[0]);
+	 help(program_name);
      exit(EXIT_FAILURE);
   }
 
   if ((create_socket = socket (AF_INET, SOCK_STREAM, 0)) == -1)
   {
+	 help(program_name);
      perror("Socket error");
      return EXIT_FAILURE;
   }
@@ -75,6 +84,7 @@ int main (int argc, char **argv) {
   else
   {
      perror("Connect error - no server available");
+	 help(program_name);
      return EXIT_FAILURE;
   }
 
@@ -82,17 +92,18 @@ int main (int argc, char **argv) {
   readline(connectionok,create_socket,5);
   if(!((connectionok[0] == 'O') & (connectionok[1] == 'K')))
   {
-    printf("error while connecting\n");
+    printf("Error While Connecting!\nThis error may occur, if the server has temporarily blocked this IP address.\n\n");
     close(create_socket);
-    return 0;
+	help(program_name);
+    return EXIT_FAILURE;
   }
 
 
 
-char test[10];
+  char test[10];
   do
   {
-    //LOGIN:
+    //LOGIN
     if(loggedin == false)
     {
       while((username = c_login(create_socket)) == NULL)
@@ -112,7 +123,7 @@ char test[10];
       loggedin = true;
     }
 
-    printf("You are logged in as %s\n", username);
+    printf("You are logged in as %s", username);
     print_options();
     printf("Option > ");
     fgets(test,10,stdin);
@@ -141,7 +152,7 @@ char test[10];
               quit = true;
               close(create_socket);
               break;
-      default: printf("Wrong option please enter a valid number\n");
+      default: printf("\n\nWrong option! Please enter a valid number between 1 and 6!\n\n");
     }
   }while(!quit);
   free(username);

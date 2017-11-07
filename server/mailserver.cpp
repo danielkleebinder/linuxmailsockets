@@ -150,8 +150,7 @@ int main(int argc, char** argv) {
 	// and try to start the server
 	try {
 		mailpoolservice mps(directory);
-		unique_ptr<loginsystem> lsptr(new virtuallogin());
-		//unique_ptr<loginsystem> lsptr(new virtuallogin());
+		unique_ptr<loginsystem> lsptr(new ldaplogin());
 		cout << "Debug Mode: " << (debug ? "On" : "Off") << endl;
 		cout << "Listening on localhost:" << port << " using \"" << directory << "\" as SMTP Mail Pool..." << endl;
 
@@ -164,9 +163,12 @@ int main(int argc, char** argv) {
 			net::csocket* connection = appcontext::get_serversocket()->accept();
 
 			// Start smtp mail service and run in own thread
-			smtpservice smtps = smtpservice(connection, mps, *lsptr.get());
-			smtps.set_timeout(MAX_TIMEOUT);
-			smtps.start_forked_service();
+			smtpservice* smtps = new smtpservice(connection, mps, *lsptr.get());
+			smtps->set_timeout(MAX_TIMEOUT);
+			smtps->start_forked_service();
+
+			// Add smtp service pointer to app context
+			appcontext::get_smtpservices()->push_back(smtps);
 		}
 	} catch(exception& ex) {
 		cout << ex.what() << endl;

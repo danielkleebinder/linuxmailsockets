@@ -8,6 +8,7 @@
 /obj
 *make*
 client/attachments
+client/test
 server/mailpool
 *test*
 client/mailclient

@@ -127,7 +127,6 @@ void smtpservice::run_protocol(net::csocket* con_sock) {
 			spam_protection++;
 			if (spam_protection > 3) {
 				appcontext::debug_log("Forced disconnection for spam protection", 1);
-				try_send_error(s);
 				break;
 			}
 			continue;

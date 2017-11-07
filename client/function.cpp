@@ -91,8 +91,9 @@ char* c_login(int create_socket)
 
   do {
     char buffer[BUF] = "LOGIN\n";
+	printf("User Login\n");
     do {
-      printf("What is your Username\n");
+      printf("Username: ");
       fgets(username, 20, stdin);
       fflush(stdin);
     } while(strlen(username)> 9);
@@ -101,9 +102,10 @@ char* c_login(int create_socket)
     tcsetattr( STDIN_FILENO, TCSANOW, &newt);
 
       do {
-        printf("What is your password\n");
+        printf("Password: ");
         fgets(password, BUF, stdin);
         fflush(stdin);
+		printf("\n");
       } while(!(strlen(password) > 1));
       password[strlen(password)-1] = '\0';
 
@@ -116,10 +118,9 @@ char* c_login(int create_socket)
       write(create_socket,buffer,strlen(buffer)+1);
 
       read(create_socket, response,5);
-      printf("response: %s\n", response);
       if(!((response[0] = 'O') && (response[1] == 'K')))
       {
-        printf("An error accured plz try again\n");
+        printf("An error occurred, please try again later (the server may have blocked this IP address after 3 failed attempts in a row)!\n\n");
       }
   } while(!((response[0] = 'O') && (response[1] == 'K')));
   return username;
@@ -128,7 +129,7 @@ char* c_login(int create_socket)
 void c_logout(int create_socket)
 {
   send(create_socket, "LOGOUT\n", 7, 0);
-  printf("logged out. plz log back in\n" );
+  printf("Logout successful. Login as another user.\n\n");
 }
 
 /*
@@ -146,12 +147,12 @@ int c_inputattachment(int create_socket,stack<char*> &stk)
   FILE *fptr;
   char input[BUF];
   int i = 0;
-  printf("Do you want to add attachments? y/n \n");
+  printf("To add attachments, type y (for 'yes'): ");
   fgets(input, 10, stdin);
   fflush(stdin);
   if(!((input[0] == 'y' || input[0] == 'Y') && input[1] == '\n'))
   {
-    printf("No attachments are getting added\n");
+    printf("No attachments added!\n");
     return 0;
   }
 
@@ -166,6 +167,19 @@ int c_inputattachment(int create_socket,stack<char*> &stk)
     }
 
     input[strlen(input)-1] = '\0';
+
+
+	// Use stat function
+	struct stat path_stat;
+	stat(input, &path_stat);
+
+	// Check if directory
+	if (S_ISDIR(path_stat.st_mode)) {
+		printf("Directories are not allowed!\n");
+		continue;
+	}
+
+
     if((fptr = fopen(input,"rb")) == NULL)
     {
       printf("Can not open file. Please check if the spelling is correct!\n");
@@ -214,7 +228,7 @@ void c_sendattachment(int create_socket,stack<char*> &stk)
     {
       printf("An error occurred while reading the file %s\n", filename);
       int errsv = errno;
-      printf("Errorcode: %d\n", errsv);
+      printf("Error Code: %d\n", errsv);
       continue;
     }
     //sending filesize
@@ -293,7 +307,7 @@ void c_saveattachments(int create_socket, char* given_number)
 
     if(numofatt <= 0)
     {
-      printf("no attachments \n");
+      printf("No Attachments\n");
       return;
     }
 
@@ -421,13 +435,13 @@ void c_list(int create_socket)
   readline(amount,create_socket,10);
   n = atoi(amount);
   printf("%d message(s) available\n", n);
-
+  printf("[ ID ] [ Message Subject ]\n");
   for(int i = 0;i < n; i++)
   {
     readline(buffer,create_socket,BUF);
-    printf(" %d.) %s\n", i+1,buffer);
+    printf(" %d.) %s", i+1,buffer);
   }
-  printf("\n\n");
+  printf("\n");
 }
 
 /*
@@ -446,7 +460,7 @@ void c_read(int create_socket)
   char tosend[BUF] = "READ\n";
   char OK[10] = "";
 
-  printf("Enter the message number you want to read: ");
+  printf("Message ID (Use LIST to list all messages and their IDs): ");
   fgets(number, 8, stdin);
   fflush(stdin);
   strcat(tosend, number);
@@ -468,11 +482,11 @@ void c_read(int create_socket)
     printf("%s", buffer);
   }
   read(create_socket,buffer,BUF-1); //get rid of everything still in the stream
-  printf("Do you want to save the attachments? y/n\n");
+  printf("To save all attachments, type y (for 'yes'): ");
   char input[10];
   fgets(input,10,stdin);
   fflush(stdin);
-  if(input[0] == 'y')
+  if((input[0] == 'y' || input[0] == 'Y') && input[1] == '\n')
   {
     c_saveattachments(create_socket,number);
   }
@@ -493,7 +507,7 @@ void c_del(int create_socket)
   char buffer[BUF];
   char tosend[30] = "DEL\n";
 
-  printf("Enter the message number you want to delete: ");
+  printf("Message ID (Use LIST to list all messages and their IDs): ");
   fgets(number, BUF, stdin);
   fflush(stdin);
   strcat(tosend,number);
@@ -503,7 +517,7 @@ void c_del(int create_socket)
 
   if(size <= 0)
   {
-    printf("error\n");
+    printf("Error\n");
     return;
   }
 

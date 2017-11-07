@@ -11,10 +11,12 @@
 #include <iostream>
 #include <stdexcept>
 #include <map>
+#include <vector>
 #include <memory>
 #include <string>
 #include <sstream>
 
+#include "mail/smtpservice.h"
 #include "mail/mailpoolservice.h"
 #include "net/serversocket.h"
 
@@ -30,7 +32,7 @@ bool appcontext::initialized = false;
 bool appcontext::debug_mode = false;
 net::serversocket* appcontext::ss;
 std::map<std::string, std::shared_ptr<appcontext::attempt_t>>* appcontext::blacklist;
-
+std::vector<smtpservice*>* appcontext::smtpservices;
 
 
 // Initializes the app context
@@ -52,6 +54,9 @@ void appcontext::initialize(int port, mailpoolservice& mps) {
 		at->last_sec = entry.second;
 		(*blacklist)[entry.first] = sp;
 	}
+
+	// Load smtp services
+	smtpservices = new std::vector<smtpservice*>();
 
 	// Everything is initialized
 	initialized = true;
@@ -76,6 +81,14 @@ std::map<std::string, std::shared_ptr<struct appcontext::attempt_t>>* appcontext
 		throw std::runtime_error("App Context was not initialized yet");
 	}
 	return blacklist;
+}
+
+// Returns all smtp services
+std::vector<smtpservice*>* appcontext::get_smtpservices() {
+	if (!initialized) {
+		throw std::runtime_error("App Context was not initialized yet");
+	}
+	return smtpservices;
 }
 
 // Enables or disables the debug mode
@@ -132,11 +145,19 @@ void appcontext::serialize_blacklist(mailpoolservice& mps) {
 
 // Disposes the app context
 void appcontext::dispose() {
-	delete ss;
+	// Kill all smtp services
+	for (auto smtps : *smtpservices) {
+		delete smtps;
+	}
+	delete smtpservices;
+
+	// Kill blacklist and server socket
 	delete blacklist;
+	delete ss;
 
 	ss = NULL;
 	blacklist = NULL;
+	smtpservices = NULL;
 
 	initialized = false;
 }
